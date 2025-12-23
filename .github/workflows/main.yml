@@ -431,6 +431,8 @@ jobs:
           cd expo-package
           npm publish --provenance --access public
           echo "✓ Published @sqliteai/sqlite-sync-expo@${{ steps.tag.outputs.version }}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - uses: softprops/action-gh-release@v2.2.1
         if: steps.tag.outputs.version != ''
