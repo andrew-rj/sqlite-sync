@@ -59,11 +59,6 @@ ifeq ($(PLATFORM),android)
 	OPENSSL_INSTALL_DIR = $(OPENSSL_DIR)/$(PLATFORM)/$(ARCH)
 endif
 
-# Android OpenSSL local installation directory
-ifeq ($(PLATFORM),android)
-	OPENSSL_INSTALL_DIR = $(OPENSSL_DIR)/$(PLATFORM)/$(ARCH)
-endif
-
 SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 TEST_FILES = $(SRC_FILES) $(TEST_SRC) $(wildcard $(SQLITE_DIR)/*.c)
