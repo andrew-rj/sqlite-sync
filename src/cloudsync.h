@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-#define CLOUDSYNC_VERSION                       "0.8.58"
+#define CLOUDSYNC_VERSION                       "0.8.59"
 
 int sqlite3_cloudsync_init (sqlite3 *db, char **pzErrMsg, const sqlite3_api_routines *pApi);
 

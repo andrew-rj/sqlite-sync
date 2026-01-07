@@ -4,7 +4,7 @@
  * Generates the @sqliteai/sqlite-sync-expo package
  *
  * This script creates an npm package that bundles CloudSync binaries
- * for React Native/Expo apps, with an Expo config plugin for automatic setup.
+ * for Expo apps, with an Expo config plugin for automatic setup.
  *
  * Usage:
  *   node generate-expo-package.js <version> <artifacts-dir> <output-dir>
@@ -30,7 +30,7 @@ function generatePackageJson(version) {
   return {
     name: '@sqliteai/sqlite-sync-expo',
     version: version,
-    description: 'SQLite Sync extension for React Native/Expo - Sync on-device databases with SQLite Cloud',
+    description: 'SQLite Sync extension for Expo - Sync on-device databases with SQLite Cloud',
     main: 'src/index.js',
     types: 'src/index.d.ts',
     files: [
@@ -79,7 +79,7 @@ function generateIndexJs() {
   return `/**
  * @sqliteai/sqlite-sync-expo
  *
- * SQLite Sync extension binaries for React Native/Expo.
+ * SQLite Sync extension binaries for Expo.
  * This package provides pre-built binaries and an Expo config plugin.
  *
  * Usage:
@@ -301,7 +301,7 @@ module.exports = withSqliteSync;
 function generateReadme(version) {
   return `# @sqliteai/sqlite-sync-expo
 
-SQLite Sync extension for React Native/Expo apps.
+SQLite Sync extension for Expo apps.
 
 **Version:** ${version}
 
@@ -310,9 +310,9 @@ This package provides pre-built SQLite Sync binaries for iOS and Android, along 
 ## Installation
 
 \`\`\`bash
-npm install @sqliteai/sqlite-sync-expo
+npm install @sqliteai/sqlite-sync-expo @op-engineering/op-sqlite
 # or
-yarn add @sqliteai/sqlite-sync-expo
+yarn add @sqliteai/sqlite-sync-expo @op-engineering/op-sqlite
 \`\`\`
 
 ## Setup
@@ -340,15 +340,15 @@ The plugin will automatically:
 ### 3. Load Extension in Code
 
 \`\`\`typescript
-import { open } from '@op-engineering/op-sqlite';
 import { Platform } from 'react-native';
+import { getDylibPath, open } from '@op-engineering/op-sqlite';
 
 const db = open({ name: 'mydb.db' });
 
 // Load SQLite Sync extension
 if (Platform.OS === 'ios') {
   // iOS requires the bundle ID and framework name
-  const path = db.getDylibPath('ai.sqlite.cloudsync', 'CloudSync');
+  const path = getDylibPath('ai.sqlite.cloudsync', 'CloudSync');
   db.loadExtension(path);
 } else {
   // Android just needs the library name
@@ -356,8 +356,8 @@ if (Platform.OS === 'ios') {
 }
 
 // Verify it works
-const result = db.execute('SELECT cloudsync_uuid() as uuid');
-console.log('SQLite Sync UUID:', result.rows[0].uuid);
+const result = db.executeSync('SELECT cloudsync_version() as version');
+console.log('SQLite Sync Version:', result.rows[0].version);
 \`\`\`
 
 ## Supported Platforms
@@ -375,7 +375,7 @@ console.log('SQLite Sync UUID:', result.rows[0].uuid);
 
 - Expo SDK 51+
 - React Native 0.73+
-- [@op-engineering/op-sqlite](https://github.com/nickcurizon/op-sqlite) for loading extensions
+- [@op-engineering/op-sqlite](https://www.npmjs.com/package/@op-engineering/op-sqlite) for loading extensions
 
 ## Links
 

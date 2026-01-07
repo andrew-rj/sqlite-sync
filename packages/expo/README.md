@@ -103,10 +103,10 @@ cd packages/expo
 node generate-expo-package.js 0.8.57 ../../artifacts ./expo-package
 ```
 
-### Step 3: Test in a React Native app
+### Step 3: Test in a Expo app
 
 ```bash
-# In your RN/Expo app
+# In your Expo app
 npm install /path/to/sqlite-sync/packages/expo/expo-package
 
 # Or use file: reference in package.json

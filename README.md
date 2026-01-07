@@ -176,7 +176,7 @@ SQLiteDatabase db = SQLiteDatabase.openDatabase(config, null, null);
 
 **Note:** Additional settings and configuration are required for a complete setup. For full implementation details, see the [complete Android example](https://github.com/sqliteai/sqlite-extensions-guide/blob/main/examples/android/README.md).
 
-### React Native / Expo
+### Expo
 
 Install the Expo package:
 
@@ -203,14 +203,14 @@ npx expo prebuild --clean
 Load the extension:
 
 ```typescript
-import { open } from '@op-engineering/op-sqlite';
 import { Platform } from 'react-native';
+import { getDylibPath, open } from '@op-engineering/op-sqlite';
 
 const db = open({ name: 'mydb.db' });
 
 // Load SQLite Sync extension
 if (Platform.OS === 'ios') {
-  const path = db.getDylibPath('ai.sqlite.cloudsync', 'CloudSync');
+  const path = getDylibPath('ai.sqlite.cloudsync', 'CloudSync');
   db.loadExtension(path);
 } else {
   db.loadExtension('cloudsync');
