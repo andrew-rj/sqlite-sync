@@ -321,7 +321,6 @@ int network_set_sqlite_result (sqlite3_context *context, NETWORK_RESULT *result)
             break;
     }
     
-    network_result_cleanup(result);
     return rc;
 }
 
@@ -339,10 +338,10 @@ int network_download_changes (sqlite3_context *context, const char *download_url
     int rc = SQLITE_OK;
     if (result.code == CLOUDSYNC_NETWORK_BUFFER) {
         rc = cloudsync_payload_apply(context, result.buffer, (int)result.blen);
-        network_result_cleanup(&result);
     } else {
         rc = network_set_sqlite_result(context, &result);
     }
+    network_result_cleanup(&result);
     
     return rc;
 }
@@ -552,7 +551,6 @@ finalize:
 void network_result_to_sqlite_error (sqlite3_context *context, NETWORK_RESULT res, const char *default_error_message) {
     sqlite3_result_error(context, ((res.code == CLOUDSYNC_NETWORK_ERROR) && (res.buffer)) ? res.buffer : default_error_message, -1);
     sqlite3_result_error_code(context, SQLITE_ERROR);
-    network_result_cleanup(&res);
 }
 
 // MARK: - Init / Cleanup -
@@ -707,6 +705,7 @@ int cloudsync_network_send_changes_internal (sqlite3_context *context, int argc,
     if (res.code != CLOUDSYNC_NETWORK_BUFFER) {
         cloudsync_memory_free(blob);
         network_result_to_sqlite_error(context, res, "cloudsync_network_send_changes unable to receive upload URL");
+        network_result_cleanup(&res);
         return SQLITE_ERROR;
     }
     
@@ -780,6 +779,7 @@ int cloudsync_network_check_internal(sqlite3_context *context) {
         rc = network_set_sqlite_result(context, &result);
     }
     
+    network_result_cleanup(&result);
     return rc;
 }
 
