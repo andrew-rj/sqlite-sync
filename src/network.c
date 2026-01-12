@@ -98,14 +98,13 @@ bool network_data_set_endpoints (network_data *data, char *auth, char *check, ch
     return true;
 }
 
-void network_data_free (network_data *data, bool free_also_data) {
+void network_data_free (network_data *data) {
     if (!data) return;
     
     if (data->authentication) cloudsync_memory_free(data->authentication);
     if (data->check_endpoint) cloudsync_memory_free(data->check_endpoint);
     if (data->upload_endpoint) cloudsync_memory_free(data->upload_endpoint);
-    if (free_also_data) cloudsync_memory_free(data);
-    else memset(data, 0, sizeof(network_data));
+    cloudsync_memory_free(data);
 }
 
 // MARK: - Utils -
@@ -621,8 +620,8 @@ abort_siteid:
     goto abort_cleanup;
     
 abort_cleanup:
-    network_data_free(data, true);
     cloudsync_set_auxdata(context, NULL);
+    network_data_free(data);
 }
 
 void cloudsync_network_cleanup (sqlite3_context *context, int argc, sqlite3_value **argv) {
@@ -630,7 +629,7 @@ void cloudsync_network_cleanup (sqlite3_context *context, int argc, sqlite3_valu
     
     network_data *data = (network_data *)cloudsync_get_auxdata(context);
     cloudsync_set_auxdata(context, NULL);
-    network_data_free(data, true);
+    network_data_free(data);
     sqlite3_result_int(context, SQLITE_OK);
     
     #ifndef CLOUDSYNC_OMIT_CURL
