@@ -217,6 +217,27 @@ if (Platform.OS === 'ios') {
 }
 ```
 
+### Flutter Package
+
+Add the [sqlite_sync](https://pub.dev/packages/sqlite_sync) package to your project:
+
+```bash
+flutter pub add sqlite_sync  # Flutter projects
+dart pub add sqlite_sync     # Dart projects
+```
+
+Usage with `sqlite3` package:
+```dart
+import 'package:sqlite3/sqlite3.dart';
+import 'package:sqlite_sync/sqlite_sync.dart';
+
+sqlite3.loadSqliteSyncExtension();
+final db = sqlite3.openInMemory();
+print(db.select('SELECT cloudsync_version()'));
+```
+
+For a complete example, see the [Flutter example](https://github.com/sqliteai/sqlite-extensions-guide/blob/main/examples/flutter/README.md).
+
 ## Getting Started
 
 Here's a quick example to get started with SQLite Sync:

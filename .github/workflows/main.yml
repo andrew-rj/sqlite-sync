@@ -1,6 +1,10 @@
 name: build, test and release sqlite-sync
 on:
   push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
   workflow_dispatch:
 
 permissions:
@@ -362,12 +366,8 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.tag.outputs.version != ''
         with:
-          node-version: '20'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-
-      - name: update npm
-        if: steps.tag.outputs.version != ''
-        run: npm install -g npm@11.5.1
 
       - name: build and publish npm packages
         if: steps.tag.outputs.version != ''
@@ -438,9 +438,11 @@ jobs:
       - uses: softprops/action-gh-release@v2.2.1
         if: steps.tag.outputs.version != ''
         with:
+          token: ${{ secrets.RELEASE_PAT }}
           body: |
             # Packages
 
+            [**Flutter/Dart**](https://pub.dev/packages/sqlite_sync): `flutter pub add sqlite_sync:${{ steps.tag.outputs.version }}` or `dart pub add sqlite_sync:${{ steps.tag.outputs.version }}`
             [**Node**](https://www.npmjs.com/package/@sqliteai/sqlite-sync): `npm install @sqliteai/sqlite-sync`
             [**WASM**](https://www.npmjs.com/package/@sqliteai/sqlite-wasm): `npm install @sqliteai/sqlite-wasm`
             [**Expo**](https://www.npmjs.com/package/@sqliteai/sqlite-sync-expo): `npm install @sqliteai/sqlite-sync-expo`
