@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.8.65
+## 0.8.66
 
 - fix: make begin_alter and commit_alter idempotent
 - fix: remove old schema_hash check
