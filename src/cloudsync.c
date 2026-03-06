@@ -143,7 +143,9 @@ typedef struct {
     sqlite3_stmt    *real_col_values_stmt;          // retrieve all column values based on pk
     sqlite3_stmt    *real_merge_delete_stmt;
     sqlite3_stmt    *real_merge_sentinel_stmt;
-    
+
+    bool            is_altering;
+
 } cloudsync_table_context;
 
 struct cloudsync_pk_decode_bind_context {
@@ -3300,6 +3302,15 @@ void cloudsync_begin_alter (sqlite3_context *context, int argc, sqlite3_value **
         return;
     }
     
+    cloudsync_table_context *table = table_lookup(data, table_name);
+    if (!table) {
+        dbutils_context_result_error(context, "Unable to find table %s", table_name);
+        sqlite3_result_error_code(context, SQLITE_MISUSE);
+        return;
+    }
+
+    if (table->is_altering) return;
+
     // create a savepoint to manage the alter operations as a transaction
     int rc = sqlite3_exec(db, "SAVEPOINT cloudsync_alter", NULL, NULL, NULL);
     if (rc != SQLITE_OK) {
@@ -3307,14 +3318,7 @@ void cloudsync_begin_alter (sqlite3_context *context, int argc, sqlite3_value **
         sqlite3_result_error_code(context, rc);
         goto rollback_begin_alter;
     }
-    
-    cloudsync_table_context *table = table_lookup(data, table_name);
-    if (!table) {
-        dbutils_context_result_error(context, "Unable to find table %s", table_name);
-        sqlite3_result_error_code(context, SQLITE_MISUSE);
-        goto rollback_begin_alter;
-    }
-    
+
     int nrows, ncols;
     char *sql = cloudsync_memory_mprintf("SELECT name FROM pragma_table_info('%q') WHERE pk>0 ORDER BY pk;", table_name);
     rc = sqlite3_get_table(db, sql, &result, &nrows, &ncols, &errmsg);
@@ -3335,6 +3339,7 @@ void cloudsync_begin_alter (sqlite3_context *context, int argc, sqlite3_value **
     
     if (table->pk_name) sqlite3_free_table(table->pk_name);
     table->pk_name = result;
+    table->is_altering = true;
     return;
     
 rollback_begin_alter:
@@ -3365,12 +3370,20 @@ void cloudsync_commit_alter (sqlite3_context *context, int argc, sqlite3_value *
     }
     
     table = table_lookup(data, table_name);
-    if (!table || !table->pk_name) {
+    if (!table) {
         dbutils_context_result_error(context, "Unable to find table context.");
         sqlite3_result_error_code(context, SQLITE_MISUSE);
         goto rollback_finalize_alter;
     }
-    
+
+    if (!table->is_altering) return;
+
+    if (!table->pk_name) {
+        dbutils_context_result_error(context, "Unable to find table context.");
+        sqlite3_result_error_code(context, SQLITE_MISUSE);
+        goto rollback_finalize_alter;
+    }
+
     int rc = cloudsync_finalize_alter(context, data, table);
     if (rc != SQLITE_OK) goto rollback_finalize_alter;
     
@@ -3394,14 +3407,18 @@ void cloudsync_commit_alter (sqlite3_context *context, int argc, sqlite3_value *
     }
     
     dbutils_update_schema_hash(db, &data->schema_hash);
-    
+
+    // flag is reset here; note that table_remove + table_free destroyed the old table,
+    // and cloudsync_init_internal created a fresh one with is_altering = false (zero-alloc).
+
     return;
-    
+
 rollback_finalize_alter:
     sqlite3_exec(db, "ROLLBACK TO cloudsync_alter; RELEASE cloudsync_alter;", NULL, NULL, NULL);
     if (table) {
         sqlite3_free_table(table->pk_name);
         table->pk_name = NULL;
+        table->is_altering = false;
     }
 }
     
