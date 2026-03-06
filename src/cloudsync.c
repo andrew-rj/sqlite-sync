@@ -2116,14 +2116,6 @@ int cloudsync_payload_apply (sqlite3_context *context, const char *payload, int 
     header.schema_hash = ntohll(header.schema_hash);
     
     cloudsync_context *data = (cloudsync_context *)sqlite3_user_data(context);
-    if (!data || header.schema_hash != data->schema_hash) {
-        sqlite3 *db = sqlite3_context_db_handle(context);
-        if (!dbutils_check_schema_hash(db, header.schema_hash)) {
-            dbutils_context_result_error(context, "Cannot apply the received payload because the schema hash is unknown %llu.", header.schema_hash);
-            sqlite3_result_error_code(context, SQLITE_MISMATCH);
-            return -1;
-        }
-    }
     
     // sanity check header
     if ((header.signature != CLOUDSYNC_PAYLOAD_SIGNATURE) || (header.ncols == 0)) {
