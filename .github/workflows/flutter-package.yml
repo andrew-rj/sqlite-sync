@@ -80,4 +80,4 @@ jobs:
           # Publish to pub.dev
           cd $FLUTTER_DIR
           dart pub get
-          dart pub publish --force --skip-validation
+          dart pub publish --force
