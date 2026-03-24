@@ -1,6 +1,6 @@
 # SQLite Sync
 
-[![sqlite-sync coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fsqliteai.github.io%2Fsqlite-sync%2F&search=%3Ctd%20class%3D%22headerItem%22%3EFunctions%3A%3C%5C%2Ftd%3E%5Cs*%3Ctd%20class%3D%22headerCovTableEntryHi%22%3E(%5B%5Cd.%5D%2B)%26nbsp%3B%25%3C%5C%2Ftd%3E&replace=%241%25&label=coverage&labelColor=rgb(85%2C%2085%2C%2085)%3B&color=rgb(167%2C%20252%2C%20157)%3B&link=https%3A%2F%2Fsqliteai.github.io%2Fsqlite-sync%2F)](https://sqliteai.github.io/sqlite-sync/)
+[![sqlite-sync coverage](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fsqliteai.github.io%2Fsqlite-sync%2F&search=Functions%3A%3C%5C%2Ftd%3E%5Cs*%3Ctd%20class%3D%22headerCovTableEntry(?:Hi|Med|Lo)%22%3E(%5B%5Cd.%5D%2B)%26nbsp%3B%25&replace=%241%25&label=coverage&labelColor=rgb(85%2C%2085%2C%2085)%3B&color=rgb(167%2C%20252%2C%20157)%3B&link=https%3A%2F%2Fsqliteai.github.io%2Fsqlite-sync%2F)](https://sqliteai.github.io/sqlite-sync/)
 
 **SQLite Sync** is a multi-platform extension that brings a true **local-first experience** to your applications with minimal effort. It extends standard SQLite tables with built-in support for offline work and automatic synchronization, allowing multiple devices to operate independently—even without a network connection—and seamlessly stay in sync. With SQLite Sync, developers can easily build **distributed, collaborative applications** while continuing to rely on the **simplicity, reliability, and performance of SQLite**.
 
@@ -16,10 +16,12 @@ In simple terms, CRDTs make it possible for multiple users to **edit shared data
 - [Key Features](#key-features)
 - [Built-in Network Layer](#built-in-network-layer)
 - [Row-Level Security](#row-level-security)
+- [Block-Level LWW](#block-level-lww)
 - [What Can You Build with SQLite Sync?](#what-can-you-build-with-sqlite-sync)
 - [Documentation](#documentation)
 - [Installation](#installation)
 - [Getting Started](#getting-started)
+- [Block-Level LWW Example](#block-level-lww-example)
 - [Database Schema Recommendations](#database-schema-recommendations)
   - [Primary Key Requirements](#primary-key-requirements)
   - [Column Constraint Guidelines](#column-constraint-guidelines)
@@ -32,6 +34,7 @@ In simple terms, CRDTs make it possible for multiple users to **edit shared data
 
 - **Offline-First by Design**: Works seamlessly even when devices are offline. Changes are queued locally and synced automatically when connectivity is restored.
 - **CRDT-Based Conflict Resolution**: Merges updates deterministically and efficiently, ensuring eventual consistency across all replicas without the need for complex merge logic.
+- **Block-Level LWW for Text**: Fine-grained conflict resolution for text columns. Instead of overwriting the entire cell, changes are tracked and merged at the line (or paragraph) level, so concurrent edits to different parts of the same text are preserved.
 - **Embedded Network Layer**: No external libraries or sync servers required. SQLiteSync handles connection setup, message encoding, retries, and state reconciliation internally.
 - **Drop-in Simplicity**: Just load the extension into SQLite and start syncing. No need to implement custom protocols or state machines.
 - **Efficient and Resilient**: Optimized binary encoding, automatic batching, and robust retry logic make synchronization fast and reliable even on flaky networks.
@@ -50,21 +53,48 @@ The sync layer is tightly integrated with [**SQLite Cloud**](https://sqlitecloud
 
 ## Row-Level Security
 
-Thanks to the underlying SQLite Cloud infrastructure, **SQLite Sync supports Row-Level Security (RLS)**—allowing you to define **precise access control at the row level**:
+Thanks to the underlying SQLite Cloud infrastructure, **SQLite Sync supports Row-Level Security (RLS)**—allowing you to use a **single shared cloud database** while each client only sees and modifies its own data. RLS policies are enforced on the server, so the security boundary is at the database level, not in application code.
 
 - Control not just who can read or write a table, but **which specific rows** they can access.
-- Enforce security policies on the server—no need for client-side filtering.
+- Each device syncs only the rows it is authorized to see—no full dataset download, no client-side filtering.
 
 For example:
 
 - User A can only see and edit their own data.
 - User B can access a different set of rows—even within the same shared table.
 
-**Benefits of RLS**:
+**Benefits**:
 
-- **Data isolation**: Ensure users only access what they’re authorized to see.
-- **Built-in privacy**: Security policies are enforced at the database level.
-- **Simplified development**: Reduce or eliminate complex permission logic in your application code.
+- **Single database, multiple tenants**: One cloud database serves all users. RLS policies partition data per user or role, eliminating the need to provision separate databases.
+- **Efficient sync**: Each client downloads only its authorized rows, reducing bandwidth and local storage.
+- **Server-enforced security**: Policies are evaluated on the server during sync. A compromised or modified client cannot bypass access controls.
+- **Simplified development**: No need to implement permission logic in your application—define policies once in the database and they apply everywhere.
+
+For more information, see the [SQLite Cloud RLS documentation](https://docs.sqlitecloud.io/docs/rls).
+
+## Block-Level LWW
+
+Standard CRDT sync resolves conflicts at the **cell level**: if two devices edit the same column of the same row, one value wins entirely. This works well for short values like names or statuses, but for longer text content — documents, notes, descriptions — it means the entire text is replaced even if the edits were in different parts.
+
+**Block-Level LWW** (Last-Writer-Wins) solves this by splitting text columns into **blocks** (lines by default) and tracking each block independently. When two devices edit different lines of the same text, **both edits are preserved** after sync. Only when two devices edit the *same* line does LWW conflict resolution apply.
+
+### How It Works
+
+1. **Enable block tracking** on a text column using `cloudsync_set_column()`.
+2. On INSERT or UPDATE, SQLite Sync automatically splits the text into blocks using the configured delimiter (default: newline `\n`).
+3. Each block gets a unique fractional index position, enabling insertions between existing blocks without reindexing.
+4. During sync, changes are merged block-by-block rather than replacing the whole cell.
+5. Use `cloudsync_text_materialize()` to reconstruct the full text from blocks on demand, or read the column directly (it is updated automatically after merge).
+
+### Key Properties
+
+- **Non-conflicting edits are preserved**: Two users editing different lines of the same document both see their changes after sync.
+- **Same-line conflicts use LWW**: If two users edit the same line, the last writer wins — consistent with standard CRDT behavior.
+- **Custom delimiters**: Use paragraph separators (`\n\n`), sentence boundaries, or any string as the block delimiter.
+- **Mixed columns**: A table can have both regular LWW columns and block-level LWW columns side by side.
+- **Transparent reads**: The base column always contains the current full text. Block tracking is an internal mechanism; your queries work unchanged.
+
+For setup instructions and a complete example, see [Block-Level LWW Example](#block-level-lww-example). For API details, see the [API Reference](./API.md).
 
 ### What Can You Build with SQLite Sync?
 
@@ -102,7 +132,13 @@ SQLite Sync is ideal for building collaborative and distributed apps across web,
 
 ## Documentation
 
-For detailed information on all available functions, their parameters, and examples, refer to the [comprehensive API Reference](./API.md).
+For detailed information on all available functions, their parameters, and examples, refer to the [comprehensive API Reference](./API.md). The API includes:
+
+- **Configuration Functions** — initialize, enable, and disable sync on tables
+- **Block-Level LWW Functions** — configure block tracking on text columns and materialize text from blocks
+- **Helper Functions** — version info, site IDs, UUID generation
+- **Schema Alteration Functions** — safely alter synced tables
+- **Network Functions** — connect, authenticate, send/receive changes, and monitor sync status
 
 ## Installation
 
@@ -158,7 +194,7 @@ sqlite3_close(db)
 Add the [following](https://central.sonatype.com/artifact/ai.sqlite/sync) to your Gradle dependencies:
 
 ```gradle
-implementation 'ai.sqlite:sync:0.8.41'
+implementation 'ai.sqlite:sync:1.0.0'
 ```
 
 Here's an example of how to use the package:
@@ -217,6 +253,16 @@ if (Platform.OS === 'ios') {
 }
 ```
 
+### React Native
+
+Install the React Native library:
+
+```bash
+npm install @sqliteai/sqlite-sync-react-native
+```
+
+Then follow the instructions from the [README](https://www.npmjs.com/package/@sqliteai/sqlite-sync-react-native)
+
 ### Flutter Package
 
 Add the [sqlite_sync](https://pub.dev/packages/sqlite_sync) package to your project:
@@ -267,7 +313,7 @@ sqlite3 myapp.db
 
 -- Create a table (primary key MUST be TEXT for global uniqueness)
 CREATE TABLE IF NOT EXISTS my_data (
-    id TEXT PRIMARY KEY NOT NULL,
+    id TEXT PRIMARY KEY,
     value TEXT NOT NULL DEFAULT '',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -290,17 +336,19 @@ UPDATE my_data SET value = 'Updated: Hello from device A!' WHERE value LIKE 'Hel
 SELECT * FROM my_data ORDER BY created_at;
 
 -- Configure network connection before using the network sync functions
-SELECT cloudsync_network_init('sqlitecloud://your-project-id.sqlite.cloud/database.sqlite');
+-- The managedDatabaseId is obtained from the OffSync page on the SQLiteCloud dashboard
+SELECT cloudsync_network_init('your-managed-database-id');
 SELECT cloudsync_network_set_apikey('your-api-key-here');
 -- Or use token authentication (required for Row-Level Security)
 -- SELECT cloudsync_network_set_token('your_auth_token');
 
--- Sync with cloud: send local changes, then check the remote server for new changes 
+-- Sync with cloud: send local changes, then check the remote server for new changes
 -- and, if a package with changes is ready to be downloaded, applies them to the local database
 SELECT cloudsync_network_sync();
--- Keep calling periodically. The function returns > 0 if data was received
--- In production applications, you would typically call this periodically
--- rather than manually (e.g., every few seconds)
+-- Returns a JSON string with sync status, e.g.:
+-- '{"send":{"status":"synced","localVersion":5,"serverVersion":5},"receive":{"rows":3,"tables":["my_data"]}}'
+-- Keep calling periodically. In production applications, you would typically
+-- call this periodically rather than manually (e.g., every few seconds)
 SELECT cloudsync_network_sync();
 
 -- Before closing the database connection
@@ -315,7 +363,7 @@ SELECT cloudsync_terminate();
 -- Load extension and create identical table structure
 .load ./cloudsync
 CREATE TABLE IF NOT EXISTS my_data (
-    id TEXT PRIMARY KEY NOT NULL,
+    id TEXT PRIMARY KEY,
     value TEXT NOT NULL DEFAULT '',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
@@ -325,9 +373,9 @@ SELECT cloudsync_init('my_data');
 SELECT cloudsync_network_init('sqlitecloud://your-project-id.sqlite.cloud/database.sqlite');
 SELECT cloudsync_network_set_apikey('your-api-key-here');
 
--- Sync to get data from the first device 
+-- Sync to get data from the first device
 SELECT cloudsync_network_sync();
--- repeat until data is received (returns > 0)
+-- Repeat — check receive.rows in the JSON result to see if data was received
 SELECT cloudsync_network_sync();
 
 -- View synchronized data
@@ -353,9 +401,114 @@ SELECT cloudsync_terminate();
 
 See the [examples](./examples/simple-todo-db/) directory for a comprehensive walkthrough including:
 - Multi-device collaboration
-- Offline scenarios  
+- Offline scenarios
 - Row-level security setup
 - Conflict resolution demonstrations
+
+## Block-Level LWW Example
+
+This example shows how to enable block-level text sync on a notes table, so that concurrent edits to different lines are merged instead of overwritten.
+
+### Setup
+
+```sql
+-- Load the extension
+.load ./cloudsync
+
+-- Create a table with a text column for long-form content
+CREATE TABLE notes (
+    id TEXT PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT ''
+);
+
+-- Initialize sync on the table
+SELECT cloudsync_init('notes');
+
+-- Enable block-level LWW on the "body" column
+SELECT cloudsync_set_column('notes', 'body', 'algo', 'block');
+```
+
+After this setup, every INSERT or UPDATE to the `body` column automatically splits the text into blocks (one per line) and tracks each block independently.
+
+### Two-Device Scenario
+
+```sql
+-- Device A: create a note
+INSERT INTO notes (id, title, body) VALUES (
+    'note-001',
+    'Meeting Notes',
+    'Line 1: Welcome
+Line 2: Agenda
+Line 3: Action items'
+);
+
+-- Sync Device A -> Cloud -> Device B
+-- (Both devices now have the same 3-line note)
+```
+
+```sql
+-- Device A (offline): edit line 1
+UPDATE notes SET body = 'Line 1: Welcome everyone
+Line 2: Agenda
+Line 3: Action items' WHERE id = 'note-001';
+
+-- Device B (offline): edit line 3
+UPDATE notes SET body = 'Line 1: Welcome
+Line 2: Agenda
+Line 3: Action items - DONE' WHERE id = 'note-001';
+```
+
+```sql
+-- After both devices sync, the merged result is:
+-- 'Line 1: Welcome everyone
+--  Line 2: Agenda
+--  Line 3: Action items - DONE'
+--
+-- Both edits are preserved because they affected different lines.
+```
+
+### Custom Delimiter
+
+For paragraph-level tracking (useful for long-form documents), set a custom delimiter:
+
+```sql
+-- Use double newline as delimiter (paragraph separator)
+SELECT cloudsync_set_column('notes', 'body', 'delimiter', '
+
+');
+```
+
+### Materializing Text
+
+After a merge, the `body` column contains the reconstructed text automatically. You can also manually trigger materialization:
+
+```sql
+-- Reconstruct body from blocks for a specific row
+SELECT cloudsync_text_materialize('notes', 'body', 'note-001');
+
+-- Then read normally
+SELECT body FROM notes WHERE id = 'note-001';
+```
+
+### Mixed Columns
+
+Block-level LWW can be enabled on specific columns while other columns use standard cell-level LWW:
+
+```sql
+CREATE TABLE docs (
+    id TEXT PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL DEFAULT '',    -- standard LWW (cell-level)
+    body TEXT NOT NULL DEFAULT '',     -- block LWW (line-level)
+    status TEXT NOT NULL DEFAULT ''    -- standard LWW (cell-level)
+);
+
+SELECT cloudsync_init('docs');
+SELECT cloudsync_set_column('docs', 'body', 'algo', 'block');
+
+-- Now: concurrent edits to "title" or "status" use normal LWW,
+-- while concurrent edits to "body" merge at the line level.
+```
 
 ## 📦 Integrations
 
@@ -374,12 +527,12 @@ When designing your database schema for SQLite Sync, follow these best practices
 - **Use globally unique identifiers**: Always use TEXT primary keys with UUIDs, ULIDs, or similar globally unique identifiers
 - **Avoid auto-incrementing integers**: Integer primary keys can cause conflicts across multiple devices
 - **Use `cloudsync_uuid()`**: The built-in function generates UUIDv7 identifiers optimized for distributed systems
-- **All primary keys must be explicitly declared as `NOT NULL`**.
+- **Note:** Any write operation that includes a NULL value for a primary key column will be rejected with an error, even if SQLite would normally allow it due to a legacy behavior.
 
 ```sql
 -- ✅ Recommended: Globally unique TEXT primary key
 CREATE TABLE users (
-    id TEXT PRIMARY KEY NOT NULL,          -- Use cloudsync_uuid()
+    id TEXT PRIMARY KEY,                    -- Use cloudsync_uuid()
     name TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL
 );

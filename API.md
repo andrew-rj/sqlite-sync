@@ -11,6 +11,9 @@ This document provides a reference for the SQLite functions provided by the `sql
   - [`cloudsync_is_enabled()`](#cloudsync_is_enabledtable_name)
   - [`cloudsync_cleanup()`](#cloudsync_cleanuptable_name)
   - [`cloudsync_terminate()`](#cloudsync_terminate)
+- [Block-Level LWW Functions](#block-level-lww-functions)
+  - [`cloudsync_set_column()`](#cloudsync_set_columntable_name-col_name-key-value)
+  - [`cloudsync_text_materialize()`](#cloudsync_text_materializetable_name-col_name-pk_values)
 - [Helper Functions](#helper-functions)
   - [`cloudsync_version()`](#cloudsync_version)
   - [`cloudsync_siteid()`](#cloudsync_siteid)
@@ -20,15 +23,15 @@ This document provides a reference for the SQLite functions provided by the `sql
   - [`cloudsync_begin_alter()`](#cloudsync_begin_altertable_name)
   - [`cloudsync_commit_alter()`](#cloudsync_commit_altertable_name)
 - [Network Functions](#network-functions)
-  - [`cloudsync_network_init()`](#cloudsync_network_initconnection_string)
+  - [`cloudsync_network_init()`](#cloudsync_network_initmanageddatabaseid)
   - [`cloudsync_network_cleanup()`](#cloudsync_network_cleanup)
   - [`cloudsync_network_set_token()`](#cloudsync_network_set_tokentoken)
   - [`cloudsync_network_set_apikey()`](#cloudsync_network_set_apikeyapikey)
-  - [`cloudsync_network_has_unsent_changes()`](#cloudsync_network_has_unsent_changes)
   - [`cloudsync_network_send_changes()`](#cloudsync_network_send_changes)
   - [`cloudsync_network_check_changes()`](#cloudsync_network_check_changes)
   - [`cloudsync_network_sync()`](#cloudsync_network_syncwait_ms-max_retries)
   - [`cloudsync_network_reset_sync_version()`](#cloudsync_network_reset_sync_version)
+  - [`cloudsync_network_has_unsent_changes()`](#cloudsync_network_has_unsent_changes)
   - [`cloudsync_network_logout()`](#cloudsync_network_logout)
 
 ---
@@ -41,8 +44,8 @@ This document provides a reference for the SQLite functions provided by the `sql
 
 Before initialization, `cloudsync_init` performs schema sanity checks to ensure compatibility with CRDT requirements and best practices. These checks include:
 - Primary keys should not be auto-incrementing integers; GUIDs (UUIDs, ULIDs) are highly recommended to prevent multi-node collisions.
-- All primary key columns must be `NOT NULL`.
 - All non-primary key `NOT NULL` columns must have a `DEFAULT` value.
+- **Note:** Any write operation that includes a NULL value for a primary key column will be rejected with an error, even if SQLite would normally allow it due to a legacy behavior.
 
 **Schema Design Considerations:**
 
@@ -173,6 +176,68 @@ SELECT cloudsync_terminate();
 
 ---
 
+## Block-Level LWW Functions
+
+### `cloudsync_set_column(table_name, col_name, key, value)`
+
+**Description:** Configures per-column settings for a synchronized table. This function is primarily used to enable **block-level LWW** on text columns, allowing fine-grained conflict resolution at the line (or paragraph) level instead of the entire cell.
+
+When block-level LWW is enabled on a column, INSERT and UPDATE operations automatically split the text into blocks using a delimiter (default: newline `\n`) and track each block independently. During sync, changes are merged block-by-block, so concurrent edits to different parts of the same text are preserved.
+
+**Parameters:**
+
+- `table_name` (TEXT): The name of the synchronized table.
+- `col_name` (TEXT): The name of the text column to configure.
+- `key` (TEXT): The setting key. Supported keys:
+  - `'algo'` — Set the column algorithm. Use value `'block'` to enable block-level LWW.
+  - `'delimiter'` — Set the block delimiter string. Only applies to columns with block-level LWW enabled.
+- `value` (TEXT): The setting value.
+
+**Returns:** None.
+
+**Example:**
+
+```sql
+-- Enable block-level LWW on a column (splits text by newline by default)
+SELECT cloudsync_set_column('notes', 'body', 'algo', 'block');
+
+-- Set a custom delimiter (e.g., double newline for paragraph-level tracking)
+SELECT cloudsync_set_column('notes', 'body', 'delimiter', '
+
+');
+```
+
+---
+
+### `cloudsync_text_materialize(table_name, col_name, pk_values...)`
+
+**Description:** Reconstructs the full text of a block-level LWW column from its individual blocks and writes the result back to the base table column. This is useful after a merge operation to ensure the column contains the up-to-date materialized text.
+
+After a sync/merge, the column is updated automatically. This function is primarily useful for manual materialization or debugging.
+
+**Parameters:**
+
+- `table_name` (TEXT): The name of the table.
+- `col_name` (TEXT): The name of the block-level LWW column.
+- `pk_values...` (variadic): The primary key values identifying the row. For composite primary keys, pass each key value as a separate argument in declaration order.
+
+**Returns:** `1` on success.
+
+**Example:**
+
+```sql
+-- Materialize the body column for a specific row
+SELECT cloudsync_text_materialize('notes', 'body', 'note-001');
+
+-- With a composite primary key (e.g., PRIMARY KEY (tenant_id, doc_id))
+SELECT cloudsync_text_materialize('docs', 'body', 'tenant-1', 'doc-001');
+
+-- Read the materialized text
+SELECT body FROM notes WHERE id = 'note-001';
+```
+
+---
+
 ## Helper Functions
 
 ### `cloudsync_version()`
@@ -287,20 +352,20 @@ SELECT cloudsync_commit_alter('my_table');
 
 ## Network Functions
 
-### `cloudsync_network_init(connection_string)`
+### `cloudsync_network_init(managedDatabaseId)`
 
-**Description:** Initializes the `sqlite-sync` network component. This function parses the connection string to configure change checking and upload endpoints, and initializes the cURL library.
+**Description:** Initializes the `sqlite-sync` network component. This function configures the endpoints for the CloudSync service and initializes the cURL library.
 
 **Parameters:**
 
-- `connection_string` (TEXT): The connection string for the remote synchronization server. The format is `sqlitecloud://<host>:<port>/<database>?<options>`.
+- `managedDatabaseId` (TEXT): The managed database identifier returned by the CloudSync service when a new database is registered for sync. For SQLiteCloud projects, this value can be obtained from the project's OffSync page on the dashboard.
 
 **Returns:** None.
 
 **Example:**
 
 ```sql
-SELECT cloudsync_network_init('<projectid>.sqlite.cloud/<db>.sqlite');
+SELECT cloudsync_network_init('your-managed-database-id');
 ```
 
 ---
@@ -357,34 +422,27 @@ SELECT cloudsync_network_set_apikey('your_api_key');
 
 ---
 
-### `cloudsync_network_has_unsent_changes()`
-
-**Description:** Checks if there are any local changes that have not yet been sent to the remote server.
-
-**Parameters:** None.
-
-**Returns:** 1 if there are unsent changes, 0 otherwise.
-
-**Example:**
-
-```sql
-SELECT cloudsync_network_has_unsent_changes();
-```
-
----
-
 ### `cloudsync_network_send_changes()`
 
 **Description:** Sends all unsent local changes to the remote server.
 
 **Parameters:** None.
 
-**Returns:** None.
+**Returns:** A JSON string with the send result:
+
+```json
+{"send": {"status": "synced|syncing|out-of-sync|error", "localVersion": N, "serverVersion": N}}
+```
+
+- `send.status`: The current sync state — `"synced"` (all changes confirmed), `"syncing"` (changes sent but not yet confirmed), `"out-of-sync"` (local changes pending or gaps detected), or `"error"`.
+- `send.localVersion`: The latest local database version.
+- `send.serverVersion`: The latest version confirmed by the server.
 
 **Example:**
 
 ```sql
 SELECT cloudsync_network_send_changes();
+-- '{"send":{"status":"synced","localVersion":5,"serverVersion":5}}'
 ```
 
 ---
@@ -399,16 +457,23 @@ This function is designed to be called periodically to keep the local database i
 To force an update and wait for changes (with a timeout), use [`cloudsync_network_sync(wait_ms, max_retries)`].
 
 If the network is misconfigured or the remote server is unreachable, the function returns an error.
-On success, it returns `SQLITE_OK`, and the return value indicates how many changes were downloaded and applied.
 
 **Parameters:** None.
 
-**Returns:** The number of changes downloaded. Errors are reported via the SQLite return code.
+**Returns:** A JSON string with the receive result:
+
+```json
+{"receive": {"rows": N, "tables": ["table1", "table2"]}}
+```
+
+- `receive.rows`: The number of rows received and applied to the local database.
+- `receive.tables`: An array of table names that received changes. Empty (`[]`) if no changes were applied.
 
 **Example:**
 
 ```sql
 SELECT cloudsync_network_check_changes();
+-- '{"receive":{"rows":3,"tables":["tasks"]}}'
 ```
 
 ---
@@ -425,13 +490,27 @@ SELECT cloudsync_network_check_changes();
 - `wait_ms` (INTEGER, optional): The time to wait in milliseconds between retries. Defaults to 100.
 - `max_retries` (INTEGER, optional): The maximum number of times to retry the synchronization. Defaults to 1.
 
-**Returns:** The number of changes downloaded. Errors are reported via the SQLite return code.
+**Returns:** A JSON string with the full sync result, combining send and receive:
+
+```json
+{
+  "send": {"status": "synced|syncing|out-of-sync|error", "localVersion": N, "serverVersion": N},
+  "receive": {"rows": N, "tables": ["table1", "table2"]}
+}
+```
+
+- `send.status`: The current sync state — `"synced"`, `"syncing"`, `"out-of-sync"`, or `"error"`.
+- `send.localVersion`: The latest local database version.
+- `send.serverVersion`: The latest version confirmed by the server.
+- `receive.rows`: The number of rows received and applied during the check phase.
+- `receive.tables`: An array of table names that received changes. Empty (`[]`) if no changes were applied.
 
 **Example:**
 
 ```sql
 -- Perform a single synchronization cycle
 SELECT cloudsync_network_sync();
+-- '{"send":{"status":"synced","localVersion":5,"serverVersion":5},"receive":{"rows":3,"tables":["tasks"]}}'
 
 -- Perform a synchronization cycle with custom retry settings
 SELECT cloudsync_network_sync(500, 3);
@@ -455,9 +534,25 @@ SELECT cloudsync_network_reset_sync_version();
 
 ---
 
+### `cloudsync_network_has_unsent_changes()`
+
+**Description:** Checks if there are any local changes that have not yet been sent to the remote server.
+
+**Parameters:** None.
+
+**Returns:** 1 if there are unsent changes, 0 otherwise.
+
+**Example:**
+
+```sql
+SELECT cloudsync_network_has_unsent_changes();
+```
+
+---
+
 ### `cloudsync_network_logout()`
 
-**Description:** Logs out the current user and cleans up all local data from synchronized tables. This function deletes and then re-initializes synchronized tables, useful for switching users or resetting the local database. **Warning:** This function deletes all data from synchronized tables. Use with caution.
+**Description:** Logs out the current user and cleans up all local data from synchronized tables. This function deletes and then re-initializes synchronized tables, useful for switching users or resetting the local database. **Warning:** This function deletes all data from synchronized tables. Use with caution. Consider calling [`cloudsync_network_has_unsent_changes()`](#cloudsync_network_has_unsent_changes) before logout to check for unsent local changes and warn the user before data that has not been fully synchronized to the remote server is deleted.
 
 **Parameters:** None.
 

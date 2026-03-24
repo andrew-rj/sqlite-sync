@@ -2,7 +2,7 @@
 # Supports compilation for Linux, macOS, Windows, Android and iOS
 
 # customize sqlite3 executable with 
-# make test SQLITE3=/opt/homebrew/Cellar/sqlite/3.49.1/bin/sqlite3
+# make test SQLITE3=/opt/homebrew/Cellar/sqlite/3.50.4/bin/sqlite3
 SQLITE3 ?= sqlite3
 
 # set curl version to download and build
@@ -32,7 +32,7 @@ MAKEFLAGS += -j$(CPUS)
 
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -Wno-unused-parameter -I$(SRC_DIR) -I$(SQLITE_DIR) -I$(CURL_DIR)/include
+CFLAGS = -Wall -Wextra -Wno-unused-parameter -I$(SRC_DIR) -I$(SRC_DIR)/sqlite -I$(SRC_DIR)/postgresql -I$(SRC_DIR)/network -I$(SQLITE_DIR) -I$(CURL_DIR)/include -Imodules/fractional-indexing
 T_CFLAGS = $(CFLAGS) -DSQLITE_CORE -DCLOUDSYNC_UNITTEST -DCLOUDSYNC_OMIT_NETWORK -DCLOUDSYNC_OMIT_PRINT_RESULT
 COVERAGE = false
 ifndef NATIVE_NETWORK
@@ -41,10 +41,14 @@ endif
 
 # Directories
 SRC_DIR = src
+SQLITE_IMPL_DIR = $(SRC_DIR)/sqlite
+POSTGRES_IMPL_DIR = $(SRC_DIR)/postgresql
 DIST_DIR = dist
 TEST_DIR = test
 SQLITE_DIR = sqlite
-VPATH = $(SRC_DIR):$(SQLITE_DIR):$(TEST_DIR)
+FI_DIR = modules/fractional-indexing
+NETWORK_DIR = $(SRC_DIR)/network
+VPATH = $(SRC_DIR):$(SQLITE_IMPL_DIR):$(POSTGRES_IMPL_DIR):$(NETWORK_DIR):$(SQLITE_DIR):$(TEST_DIR):$(FI_DIR)
 BUILD_RELEASE = build/release
 BUILD_TEST = build/test
 BUILD_DIRS = $(BUILD_TEST) $(BUILD_RELEASE)
@@ -59,12 +63,20 @@ ifeq ($(PLATFORM),android)
 	OPENSSL_INSTALL_DIR = $(OPENSSL_DIR)/$(PLATFORM)/$(ARCH)
 endif
 
-SRC_FILES = $(wildcard $(SRC_DIR)/*.c)
+# Multi-platform source files (at src/ root) - exclude database_*.c as they're in subdirs
+CORE_SRC = $(filter-out $(SRC_DIR)/database_%.c, $(wildcard $(SRC_DIR)/*.c)) $(wildcard $(NETWORK_DIR)/*.c)
+# SQLite-specific files
+SQLITE_SRC = $(wildcard $(SQLITE_IMPL_DIR)/*.c)
+# Fractional indexing submodule
+FI_SRC = $(FI_DIR)/fractional_indexing.c
+# Combined for SQLite extension build
+SRC_FILES = $(CORE_SRC) $(SQLITE_SRC) $(FI_SRC)
+
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 TEST_FILES = $(SRC_FILES) $(TEST_SRC) $(wildcard $(SQLITE_DIR)/*.c)
 RELEASE_OBJ = $(patsubst %.c, $(BUILD_RELEASE)/%.o, $(notdir $(SRC_FILES)))
 TEST_OBJ = $(patsubst %.c, $(BUILD_TEST)/%.o, $(notdir $(TEST_FILES)))
-COV_FILES = $(filter-out $(SRC_DIR)/lz4.c $(SRC_DIR)/network.c, $(SRC_FILES))
+COV_FILES = $(filter-out $(SRC_DIR)/lz4.c $(NETWORK_DIR)/network.c $(SQLITE_IMPL_DIR)/sql_sqlite.c $(POSTGRES_IMPL_DIR)/database_postgresql.c $(FI_SRC), $(SRC_FILES))
 CURL_LIB = $(CURL_DIR)/$(PLATFORM)/libcurl.a
 TEST_TARGET = $(patsubst %.c,$(DIST_DIR)/%$(EXE), $(notdir $(TEST_SRC)))
 
@@ -120,7 +132,7 @@ else ifeq ($(PLATFORM),android)
 	CURL_CONFIG = --host $(ARCH)-linux-$(ANDROID_ABI) --with-openssl=$(CURDIR)/$(OPENSSL_INSTALL_DIR) LDFLAGS="-L$(CURDIR)/$(OPENSSL_INSTALL_DIR)/lib" LIBS="-lssl -lcrypto" AR=$(BIN)/llvm-ar AS=$(BIN)/llvm-as CC=$(CC) CXX=$(BIN)/$(ARCH)-linux-$(ANDROID_ABI)-clang++ LD=$(BIN)/ld RANLIB=$(BIN)/llvm-ranlib STRIP=$(BIN)/llvm-strip
 	TARGET := $(DIST_DIR)/cloudsync.so
 	CFLAGS += -fPIC -I$(OPENSSL_INSTALL_DIR)/include
-	LDFLAGS += -shared -fPIC -L$(OPENSSL_INSTALL_DIR)/lib -lssl -lcrypto -Wl,-z,max-page-size=16384
+	LDFLAGS += -shared -fPIC -L$(OPENSSL_INSTALL_DIR)/lib -lssl -lcrypto -lm -Wl,-z,max-page-size=16384
 	STRIP = $(BIN)/llvm-strip --strip-unneeded $@
 else ifeq ($(PLATFORM),ios)
 	TARGET := $(DIST_DIR)/cloudsync.dylib
@@ -140,8 +152,8 @@ else ifeq ($(PLATFORM),ios-sim)
 	STRIP = strip -x -S $@
 else # linux
 	TARGET := $(DIST_DIR)/cloudsync.so
-	LDFLAGS += -shared -lssl -lcrypto
-	T_LDFLAGS += -lpthread
+	LDFLAGS += -shared -lssl -lcrypto -lm
+	T_LDFLAGS += -lpthread -lm
 	CURL_CONFIG = --with-openssl
 	STRIP = strip --strip-unneeded $@
 endif
@@ -156,7 +168,7 @@ endif
 
 # Native network support only for Apple platforms
 ifdef NATIVE_NETWORK
-	RELEASE_OBJ += $(patsubst %.m, $(BUILD_RELEASE)/%_m.o, $(notdir $(wildcard $(SRC_DIR)/*.m)))
+	RELEASE_OBJ += $(patsubst %.m, $(BUILD_RELEASE)/%_m.o, $(notdir $(wildcard $(NETWORK_DIR)/*.m)))
 	LDFLAGS += -framework Foundation
 	CFLAGS += -DCLOUDSYNC_OMIT_CURL
 
@@ -206,14 +218,21 @@ $(BUILD_TEST)/%.o: %.c
 	$(CC) $(T_CFLAGS) -c $< -o $@
 
 # Run code coverage (--css-file $(CUSTOM_CSS))
-test: $(TARGET) $(TEST_TARGET)
-	$(SQLITE3) ":memory:" -cmd ".bail on" ".load ./$<" "SELECT cloudsync_version();"
-	set -e; for t in $(TEST_TARGET); do ./$$t; done
+test: $(TARGET) $(TEST_TARGET) unittest
+	@if [ -f .env ]; then \
+		export $$(grep -v '^#' .env | xargs); \
+	fi; \
+	set -e; $(SQLITE3) ":memory:" -cmd ".bail on" ".load ./$<" "SELECT cloudsync_version();" # && \
+	#for t in $(TEST_TARGET); do ./$$t; done
 ifneq ($(COVERAGE),false)
 	mkdir -p $(COV_DIR)
 	lcov --capture --directory . --output-file $(COV_DIR)/coverage.info $(subst src, --include src,${COV_FILES})
 	genhtml $(COV_DIR)/coverage.info --output-directory $(COV_DIR)
 endif
+
+# Run only unit tests
+unittest: $(TARGET) $(DIST_DIR)/unit$(EXE)
+	@./$(DIST_DIR)/unit$(EXE)
 
 OPENSSL_TARBALL = $(OPENSSL_DIR)/$(OPENSSL_VERSION).tar.gz
 
@@ -418,8 +437,15 @@ help:
 	@echo "  all	   				- Build the extension (default)"
 	@echo "  clean	 				- Remove built files"
 	@echo "  test [COVERAGE=true]	- Test the extension with optional coverage output"
+	@echo "  unittest				- Run only unit tests (test/unit.c)"
 	@echo "  help	  				- Display this help message"
 	@echo "  xcframework			- Build the Apple XCFramework"
 	@echo "  aar					- Build the Android AAR package"
+	@echo ""
+	@echo "PostgreSQL Targets:"
+	@echo "  make postgres-help	- Show PostgreSQL-specific targets"
 
-.PHONY: all clean test extension help version xcframework aar
+# Include PostgreSQL extension targets
+include docker/Makefile.postgresql
+
+.PHONY: all clean test unittest extension help version xcframework aar

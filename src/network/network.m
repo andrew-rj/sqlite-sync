@@ -13,59 +13,6 @@ void network_buffer_cleanup (void *xdata) {
     if (xdata) CFRelease(xdata);
 }
 
-bool network_compute_endpoints (sqlite3_context *context, network_data *data, const char *conn_string) {
-    NSString *conn = [NSString stringWithUTF8String:conn_string];
-    NSString *conn_string_https = nil;
-    
-    if ([conn hasPrefix:@"sqlitecloud://"]) {
-        conn_string_https = [conn stringByReplacingCharactersInRange:NSMakeRange(0, [@"sqlitecloud://" length]) withString:@"https://"];
-    } else {
-        conn_string_https = conn;
-    }
-    
-    NSURL *url = [NSURL URLWithString:conn_string_https];
-    if (!url) return false;
-    
-    NSString *scheme = url.scheme;                  // "https"
-    if (!scheme) return false;
-    NSString *host = url.host;                      // "cn5xiooanz.global3.ryujaz.sqlite.cloud"
-    if (!host) return false;
-    
-    NSString *port = url.port.stringValue;
-    NSString *database = url.path;                  // "/chinook-cloudsync.sqlite"
-    if (!database) return false;
-    
-    NSString *query = url.query;                    // "apikey=hWDanFolRT9WDK0p54lufNrIyfgLZgtMw6tb6fbPmpo" (OPTIONAL)
-    NSString *authentication = nil;
-    
-    if (query) {
-        NSURLComponents *components = [NSURLComponents componentsWithString:[@"http://dummy?" stringByAppendingString:query]];
-        NSArray<NSURLQueryItem *> *items = components.queryItems;
-        for (NSURLQueryItem *item in items) {
-            // build new token
-            // apikey: just write the key for retrocompatibility
-            // other keys, like token: add a prefix, i.e. token=
-            
-            if ([item.name isEqualToString:@"apikey"]) {
-                authentication = item.value;
-                break;
-            }
-            if ([item.name isEqualToString:@"token"]) {
-                authentication = [NSString stringWithFormat:@"%@=%@", item.name, item.value];
-                break;
-            }
-        }
-    }
-    
-    char *site_id = network_data_get_siteid(data);
-    char *port_or_default = (port && strcmp(port.UTF8String, "8860") != 0) ? (char *)port.UTF8String : CLOUDSYNC_DEFAULT_ENDPOINT_PORT;
-    
-    NSString *check_endpoint = [NSString stringWithFormat:@"%s://%s:%s/%s%s/%s", scheme.UTF8String, host.UTF8String, port_or_default, CLOUDSYNC_ENDPOINT_PREFIX, database.UTF8String, site_id];
-    NSString *upload_endpoint = [NSString stringWithFormat: @"%s://%s:%s/%s%s/%s/%s", scheme.UTF8String, host.UTF8String, port_or_default, CLOUDSYNC_ENDPOINT_PREFIX, database.UTF8String, site_id, CLOUDSYNC_ENDPOINT_UPLOAD];
-    
-    return network_data_set_endpoints(data, (char *)authentication.UTF8String, (char *)check_endpoint.UTF8String, (char *)upload_endpoint.UTF8String, true);
-}
-
 bool network_send_buffer(network_data *data, const char *endpoint, const char *authentication, const void *blob, int blob_size) {
     NSString *urlString = [NSString stringWithUTF8String:endpoint];
     NSURL *url = [NSURL URLWithString:urlString];
@@ -81,6 +28,11 @@ bool network_send_buffer(network_data *data, const char *endpoint, const char *a
         [request setValue:authString forHTTPHeaderField:@"Authorization"];
     }
 
+    char *org_id = network_data_get_orgid(data);
+    if (org_id) {
+        [request setValue:[NSString stringWithUTF8String:org_id] forHTTPHeaderField:@CLOUDSYNC_HEADER_ORG];
+    }
+
     NSData *bodyData = [NSData dataWithBytes:blob length:blob_size];
     [request setHTTPBody:bodyData];
 
@@ -91,7 +43,7 @@ bool network_send_buffer(network_data *data, const char *endpoint, const char *a
     NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
 
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request
-                                            completionHandler:^(NSData * _Nullable data,
+                                            completionHandler:^(NSData * _Nullable responseBody,
                                                                 NSURLResponse * _Nullable response,
                                                                 NSError * _Nullable error) {
         if (!error && [response isKindOfClass:[NSHTTPURLResponse class]]) {
@@ -103,6 +55,7 @@ bool network_send_buffer(network_data *data, const char *endpoint, const char *a
 
     [task resume];
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    [session finishTasksAndInvalidate];
 
     return success;
 }
@@ -133,6 +86,11 @@ NETWORK_RESULT network_receive_buffer(network_data *data, const char *endpoint, 
         }
     }
 
+    char *org_id = network_data_get_orgid(data);
+    if (org_id) {
+        [request setValue:[NSString stringWithUTF8String:org_id] forHTTPHeaderField:@CLOUDSYNC_HEADER_ORG];
+    }
+
     if (authentication) {
         NSString *authString = [NSString stringWithFormat:@"Bearer %s", authentication];
         [request setValue:authString forHTTPHeaderField:@"Authorization"];
@@ -153,9 +111,10 @@ NETWORK_RESULT network_receive_buffer(network_data *data, const char *endpoint, 
 
     dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-    NSURLSession *session = [NSURLSession sharedSession];
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-        responseData = data;
+    NSURLSessionConfiguration *config = [NSURLSessionConfiguration ephemeralSessionConfiguration];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:config];
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *responseBody, NSURLResponse *response, NSError *error) {
+        responseData = responseBody;
         if (error) {
             responseError = [error localizedDescription];
             errorCode = [error code];
@@ -168,6 +127,7 @@ NETWORK_RESULT network_receive_buffer(network_data *data, const char *endpoint, 
 
     [task resume];
     dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
+    [session finishTasksAndInvalidate];
 
     if (!responseError && (statusCode >= 200 && statusCode < 300)) {
         // check if OK should be returned
@@ -180,6 +140,10 @@ NETWORK_RESULT network_receive_buffer(network_data *data, const char *endpoint, 
         result.code = CLOUDSYNC_NETWORK_BUFFER;
         if (zero_terminated) {
             NSString *utf8String = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+            if (!utf8String) {
+                NSString *msg = @"Response is not valid UTF-8";
+                return (NETWORK_RESULT){CLOUDSYNC_NETWORK_ERROR, (char *)msg.UTF8String, 0, (void *)CFBridgingRetain(msg), network_buffer_cleanup};
+            }
             result.buffer = (char *)utf8String.UTF8String;
             result.xdata = (void *)CFBridgingRetain(utf8String);
         } else {

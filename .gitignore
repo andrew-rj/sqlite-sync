@@ -41,7 +41,6 @@ jniLibs/
 *.dex
 
 # IDE
-.vscode
 .idea/
 *.iml
 *.swp
@@ -50,6 +49,7 @@ jniLibs/
 # System
 .DS_Store
 Thumbs.db
+*.o
 
 # Dart/Flutter
 .dart_tool/

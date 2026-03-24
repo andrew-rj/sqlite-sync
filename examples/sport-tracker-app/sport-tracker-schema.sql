@@ -1,7 +1,7 @@
 -- SQL schema
 -- Use this exact schema to create the remote database on the on SQLite Cloud
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE IF NOT EXISTS users_sport (
     id TEXT PRIMARY KEY NOT NULL, -- UUID's HIGHLY RECOMMENDED for global uniqueness
     name TEXT UNIQUE NOT NULL DEFAULT ''
 );
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS activities (
     date TEXT,
     notes TEXT,
     user_id TEXT,
-    FOREIGN KEY (user_id) REFERENCES users (id)
+    FOREIGN KEY (user_id) REFERENCES users_sport (id)
 );
 
 CREATE TABLE IF NOT EXISTS workouts (

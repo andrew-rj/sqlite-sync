@@ -80,14 +80,18 @@ jobs:
         shell: ${{ matrix.container && 'sh' || 'bash' }}
 
     env:
-      CONNECTION_STRING: ${{ secrets.CONNECTION_STRING }}
-      CONNECTION_STRING_OFFLINE_PROJECT: ${{ secrets.CONNECTION_STRING_OFFLINE_PROJECT }}
-      APIKEY: ${{ secrets.APIKEY }}
-      WEBLITE: ${{ secrets.WEBLITE }}
+      INTEGRATION_TEST_DATABASE_ID: ${{ secrets.INTEGRATION_TEST_DATABASE_ID }}
+      INTEGRATION_TEST_OFFLINE_DATABASE_ID: ${{ secrets.INTEGRATION_TEST_OFFLINE_DATABASE_ID }}
 
     steps:
 
+      - name: install git for alpine container
+        if: matrix.container
+        run: apk add --no-cache git
+
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: true
 
       - name: android setup java
         if: matrix.name == 'android-aar'
@@ -121,10 +125,8 @@ jobs:
             --platform linux/arm64 \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
-            -e CONNECTION_STRING="${{ env.CONNECTION_STRING }}" \
-            -e CONNECTION_STRING_OFFLINE_PROJECT="${{ env.CONNECTION_STRING_OFFLINE_PROJECT }}" \
-            -e APIKEY="${{ env.APIKEY }}" \
-            -e WEBLITE="${{ env.WEBLITE }}" \
+            -e INTEGRATION_TEST_DATABASE_ID="${{ env.INTEGRATION_TEST_DATABASE_ID }}" \
+            -e INTEGRATION_TEST_OFFLINE_DATABASE_ID="${{ env.INTEGRATION_TEST_OFFLINE_DATABASE_ID }}" \
             alpine:latest \
             tail -f /dev/null
           docker exec alpine sh -c "apk update && apk add --no-cache gcc make curl sqlite openssl-dev musl-dev linux-headers"
@@ -194,10 +196,8 @@ jobs:
           cat > commands.sh << EOF
             mv -f /data/local/tmp/sqlite3 /system/xbin
             cd /data/local/tmp
-            export CONNECTION_STRING="$CONNECTION_STRING"
-            export CONNECTION_STRING_OFFLINE_PROJECT="$CONNECTION_STRING_OFFLINE_PROJECT"
-            export APIKEY="$APIKEY"
-            export WEBLITE="$WEBLITE"
+            export INTEGRATION_TEST_DATABASE_ID="$INTEGRATION_TEST_DATABASE_ID"
+            export INTEGRATION_TEST_OFFLINE_DATABASE_ID="$INTEGRATION_TEST_OFFLINE_DATABASE_ID"
             $(make test PLATFORM=$PLATFORM ARCH=$ARCH -n)
           EOF
           echo "::endgroup::"
@@ -230,11 +230,96 @@ jobs:
           path: dist/${{ matrix.name == 'apple-xcframework' && 'CloudSync.*' || 'cloudsync.*'}}
           if-no-files-found: error
 
+  postgres-test:
+    runs-on: ubuntu-22.04
+    name: postgresql build + test
+    timeout-minutes: 10
+
+    steps:
+
+      - uses: actions/checkout@v4.2.2
+        with:
+          submodules: true
+
+      - name: build and start postgresql container
+        run: make postgres-docker-rebuild
+
+      - name: wait for postgresql to be ready
+        run: |
+          for i in $(seq 1 30); do
+            if docker exec cloudsync-postgres pg_isready -U postgres > /dev/null 2>&1; then
+              echo "PostgreSQL is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "PostgreSQL failed to start within 60s"
+          docker logs cloudsync-postgres
+          exit 1
+
+      - name: run postgresql tests
+        run: |
+          docker exec cloudsync-postgres mkdir -p /tmp/cloudsync/test
+          docker cp test/postgresql cloudsync-postgres:/tmp/cloudsync/test/postgresql
+          docker exec cloudsync-postgres psql -U postgres -d postgres -f /tmp/cloudsync/test/postgresql/full_test.sql
+
+  postgres-build:
+    runs-on: ${{ matrix.os }}
+    name: postgresql-${{ matrix.name }}-${{ matrix.arch }} build
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x86_64
+            name: linux
+          - os: ubuntu-22.04-arm
+            arch: arm64
+            name: linux
+          - os: macos-15
+            arch: arm64
+            name: macos
+          - os: macos-15
+            arch: x86_64
+            name: macos
+    steps:
+
+      - uses: actions/checkout@v4.2.2
+        with:
+          submodules: true
+
+      - name: linux install postgresql dev headers
+        if: matrix.name == 'linux'
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          sudo apt-get update
+          sudo apt-get install -y postgresql-server-dev-17
+
+      - name: macos install postgresql
+        if: matrix.name == 'macos'
+        run: brew install postgresql@17 gettext
+
+      - name: build and package postgresql extension (linux)
+        if: matrix.name == 'linux'
+        run: make postgres-package
+
+      - name: build and package postgresql extension (macos)
+        if: matrix.name == 'macos'
+        run: make postgres-package PG_CONFIG=$(brew --prefix postgresql@17)/bin/pg_config PG_EXTRA_CFLAGS="-I$(brew --prefix gettext)/include ${{ matrix.arch == 'x86_64' && '-arch x86_64' || '' }}"
+
+      - uses: actions/upload-artifact@v4.6.2
+        with:
+          name: cloudsync-postgresql-${{ matrix.name }}-${{ matrix.arch }}
+          path: dist/postgresql/
+          if-no-files-found: error
+
   release:
     runs-on: ubuntu-22.04
     name: release
-    needs: build
-    if: github.ref == 'refs/heads/main'
+    needs: [build, postgres-test, postgres-build]
+    if: false #github.ref == 'refs/heads/main'
 
     env:
       GH_TOKEN: ${{ github.token }}
@@ -313,7 +398,25 @@ jobs:
           git add "$PKG"
           git commit -m "Bump sqlite-sync version to ${{ steps.tag.outputs.version }}"
           git push origin main
-          
+
+      - uses: actions/checkout@v4.2.2
+        if: steps.tag.outputs.version != ''
+        with:
+          repository: sqliteai/sqlite-sync-react-native
+          path: sqlite-sync-react-native
+          token: ${{ secrets.PAT }}
+
+      - name: release sqlite-sync-react-native
+        if: steps.tag.outputs.version != ''
+        run: |
+          cd sqlite-sync-react-native
+          git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config --global user.name "$GITHUB_ACTOR"
+          jq --arg version "${{ steps.tag.outputs.version }}" '.version = $version' package.json > package.tmp.json && mv package.tmp.json package.json
+          git add package.json
+          git commit -m "Bump sqlite-sync version to ${{ steps.tag.outputs.version }}"
+          git push origin main
+
       - uses: actions/setup-java@v4
         if: steps.tag.outputs.version != ''
         with:
@@ -406,6 +509,7 @@ jobs:
             [**Flutter/Dart**](https://pub.dev/packages/sqlite_sync): `flutter pub add sqlite_sync:${{ steps.tag.outputs.version }}` or `dart pub add sqlite_sync:${{ steps.tag.outputs.version }}`
             [**Node**](https://www.npmjs.com/package/@sqliteai/sqlite-sync): `npm install @sqliteai/sqlite-sync`
             [**WASM**](https://www.npmjs.com/package/@sqliteai/sqlite-wasm): `npm install @sqliteai/sqlite-wasm`
+            [**React Native**](https://www.npmjs.com/package/@sqliteai/sqlite-sync-react-native): `npm install @sqliteai/sqlite-sync-react-native`
             [**Expo**](https://www.npmjs.com/package/@sqliteai/sqlite-sync-expo): `npm install @sqliteai/sqlite-sync-expo`
             [**Android**](https://central.sonatype.com/artifact/ai.sqlite/sync): `ai.sqlite:sync:${{ steps.tag.outputs.version }}`
             [**Swift**](https://github.com/sqliteai/sqlite-sync#swift-package): [Installation Guide](https://github.com/sqliteai/sqlite-sync#swift-package)

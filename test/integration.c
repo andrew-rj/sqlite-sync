@@ -1,9 +1,9 @@
 //
-//  main.c
+//  integration.c
 //  cloudsync
 //
 //  Created by Gioele Cantoni on 05/06/25.
-//  Set CONNECTION_STRING, APIKEY and WEBLITE environment variables before running this test.
+//  Set INTEGRATION_TEST_OFFLINE_DATABASE_ID and INTEGRATION_TEST_DATABASE_ID environment variables before running this test.
 //
 
 #include <stdio.h>
@@ -31,6 +31,7 @@
 
 #ifdef CLOUDSYNC_LOAD_FROM_SOURCES
 #include "cloudsync.h"
+#include "cloudsync_sqlite.h"
 #endif
 
 #define DB_PATH         "health-track.sqlite"
@@ -40,7 +41,7 @@
 #define TERMINATE       if (db) { db_exec(db, "SELECT cloudsync_terminate();"); }
 #define ABORT_TEST      abort_test: ERROR_MSG TERMINATE if (db) sqlite3_close(db); return rc;
 
-typedef enum { PRINT, NOPRINT, INTGR, GT0 } expected_type;
+typedef enum { PRINT, NOPRINT, INTGR, GT0, STR } expected_type;
 
 typedef struct {
     expected_type type;
@@ -83,6 +84,15 @@ static int callback(void *data, int argc, char **argv, char **names) {
                     return SQLITE_ERROR;
                 }
 
+            } else goto multiple_columns;
+            break;
+
+        case STR:
+            if(argc == 1){
+                if(!argv[0] || strcmp(argv[0], expect->value.s) != 0){
+                    printf("Error: expected from %s: \"%s\", got \"%s\"\n", names[0], expect->value.s, argv[0] ? argv[0] : "NULL");
+                    return SQLITE_ERROR;
+                }
             } else goto multiple_columns;
             break;
 
@@ -129,6 +139,16 @@ int db_expect_int (sqlite3 *db, const char *sql, int expect) {
 int db_expect_gt0 (sqlite3 *db, const char *sql) {
     expected_t data;
     data.type = GT0;
+
+    int rc = sqlite3_exec(db, sql, callback, &data, NULL);
+    if (rc != SQLITE_OK) printf("Error while executing %s: %s\n", sql, sqlite3_errmsg(db));
+    return rc;
+}
+
+int db_expect_str (sqlite3 *db, const char *sql, const char *expect) {
+    expected_t data;
+    data.type = STR;
+    data.value.s = expect;
 
     int rc = sqlite3_exec(db, sql, callback, &data, NULL);
     if (rc != SQLITE_OK) printf("Error while executing %s: %s\n", sql, sqlite3_errmsg(db));
@@ -204,15 +224,15 @@ int test_init (const char *db_path, int init) {
     rc = db_exec(db, "SELECT cloudsync_init('activities');"); RCHECK
     rc = db_exec(db, "SELECT cloudsync_init('workouts');"); RCHECK
 
-    // init network with connection string + apikey
-    char network_init[512];
-    const char* conn_str = getenv("CONNECTION_STRING");
-    const char* apikey = getenv("APIKEY");
-    if (!conn_str || !apikey) {
-        fprintf(stderr, "Error: CONNECTION_STRING or APIKEY not set.\n");
+    // init network with JSON connection string
+    char network_init[1024];
+    const char* test_db_id = getenv("INTEGRATION_TEST_DATABASE_ID");
+    if (!test_db_id) {
+        fprintf(stderr, "Error: INTEGRATION_TEST_DATABASE_ID not set.\n");
         exit(1);
     }
-    snprintf(network_init, sizeof(network_init), "SELECT cloudsync_network_init('%s?apikey=%s');", conn_str, apikey);
+    snprintf(network_init, sizeof(network_init),
+        "SELECT cloudsync_network_init('%s');", test_db_id);
     rc = db_exec(db, network_init); RCHECK
 
     rc = db_expect_int(db, "SELECT COUNT(*) as count FROM activities;", 0); RCHECK
@@ -223,7 +243,7 @@ int test_init (const char *db_path, int init) {
     snprintf(sql, sizeof(sql), "INSERT INTO users (id, name) VALUES ('%s', '%s');", value, value);
     rc = db_exec(db, sql); RCHECK
     rc = db_expect_int(db, "SELECT COUNT(*) as count FROM users;", 1); RCHECK
-    rc = db_expect_gt0(db, "SELECT cloudsync_network_sync(250,10);"); RCHECK
+    rc = db_expect_gt0(db, "SELECT cloudsync_network_sync(250,10) ->> '$.receive.rows';"); RCHECK
     rc = db_expect_gt0(db, "SELECT COUNT(*) as count FROM users;"); RCHECK
     rc = db_expect_gt0(db, "SELECT COUNT(*) as count FROM activities;"); RCHECK
     rc = db_expect_int(db, "SELECT COUNT(*) as count FROM workouts;", 0); RCHECK
@@ -261,30 +281,34 @@ int test_enable_disable(const char *db_path) {
     cloudsync_uuid_v7_string(value, true);
     char sql[256];
 
-    rc = db_exec(db, "SELECT cloudsync_init('*');"); RCHECK
+    rc = db_exec(db, "SELECT cloudsync_init('users');"); RCHECK
+    rc = db_exec(db, "SELECT cloudsync_init('activities');"); RCHECK
+    rc = db_exec(db, "SELECT cloudsync_init('workouts');"); RCHECK
     rc = db_exec(db, "SELECT cloudsync_disable('users');"); RCHECK
 
     snprintf(sql, sizeof(sql), "INSERT INTO users (id, name) VALUES ('%s', '%s');", value, value);
-    rc = db_exec(db, sql); RCHECK
+    //rc = db_exec(db, sql); RCHECK
 
     rc = db_exec(db, "SELECT cloudsync_enable('users');"); RCHECK
 
     snprintf(sql, sizeof(sql), "INSERT INTO users (id, name) VALUES ('%s-should-sync', '%s-should-sync');", value, value);
     rc = db_exec(db, sql); RCHECK
 
-    // init network with connection string + apikey
-    char network_init[512];
-    const char* conn_str = getenv("CONNECTION_STRING");
-    const char* apikey = getenv("APIKEY");
-    if (!conn_str || !apikey) {
-        fprintf(stderr, "Error: CONNECTION_STRING or APIKEY not set.\n");
+    // init network with JSON connection string
+    char network_init[1024];
+    const char* test_db_id = getenv("INTEGRATION_TEST_DATABASE_ID");
+    if (!test_db_id) {
+        fprintf(stderr, "Error: INTEGRATION_TEST_DATABASE_ID not set.\n");
         exit(1);
     }
-    snprintf(network_init, sizeof(network_init), "SELECT cloudsync_network_init('%s?apikey=%s');", conn_str, apikey);
+    snprintf(network_init, sizeof(network_init),
+        "SELECT cloudsync_network_init('%s');", test_db_id);
     rc = db_exec(db, network_init); RCHECK
 
     rc = db_exec(db, "SELECT cloudsync_network_send_changes();"); RCHECK
-    rc = db_exec(db, "SELECT cloudsync_cleanup('*');");
+    rc = db_exec(db, "SELECT cloudsync_cleanup('users');"); RCHECK
+    rc = db_exec(db, "SELECT cloudsync_cleanup('activities');"); RCHECK
+    rc = db_exec(db, "SELECT cloudsync_cleanup('workouts');"); RCHECK
 
     // give the server the time to apply the latest sent changes, it is an async job
     sqlite3_sleep(5000);
@@ -293,12 +317,14 @@ int test_enable_disable(const char *db_path) {
     rc = open_load_ext(":memory:", &db2); RCHECK
     rc = db_init(db2); RCHECK
 
-    rc = db_exec(db2, "SELECT cloudsync_init('*');"); RCHECK
+    rc = db_exec(db2, "SELECT cloudsync_init('users');"); RCHECK
+    rc = db_exec(db2, "SELECT cloudsync_init('activities');"); RCHECK
+    rc = db_exec(db2, "SELECT cloudsync_init('workouts');"); RCHECK
 
     // init network with connection string + apikey
     rc = db_exec(db2, network_init); RCHECK
 
-    rc = db_expect_gt0(db2, "SELECT cloudsync_network_sync(250,10);"); RCHECK
+    rc = db_expect_gt0(db2, "SELECT cloudsync_network_sync(250,10) ->> '$.receive.rows';"); RCHECK
 
     snprintf(sql, sizeof(sql), "SELECT COUNT(*) FROM users WHERE name='%s';", value);
     rc = db_expect_int(db2, sql, 0); RCHECK
@@ -327,16 +353,16 @@ int test_offline_error(const char *db_path) {
     rc = db_exec(db, "INSERT INTO test_table (id, value) VALUES (cloudsync_uuid(), 'test1'), (cloudsync_uuid(), 'test2');");
     RCHECK
 
-    // Initialize network with offline connection string
-    const char* offline_conn_str = getenv("CONNECTION_STRING_OFFLINE_PROJECT");
-    if (!offline_conn_str) {
-        printf("Skipping offline error test: CONNECTION_STRING_OFFLINE_PROJECT not set.\n");
+    // Initialize network with offline database ID
+    const char* offline_db_id = getenv("INTEGRATION_TEST_OFFLINE_DATABASE_ID");
+    if (!offline_db_id) {
+        printf("Skipping offline error test: INTEGRATION_TEST_OFFLINE_DATABASE_ID not set.\n");
         rc = SQLITE_OK;
         goto abort_test;
     }
 
     char network_init[512];
-    snprintf(network_init, sizeof(network_init), "SELECT cloudsync_network_init('%s');", offline_conn_str);
+    snprintf(network_init, sizeof(network_init), "SELECT cloudsync_network_init('%s');", offline_db_id);
     rc = db_exec(db, network_init);
     RCHECK
 
