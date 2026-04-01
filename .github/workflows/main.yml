@@ -369,22 +369,6 @@ jobs:
             fi
           done
 
-      - name: update Package.swift checksum and version
-        run: |
-          VERSION=$(make version)
-          ZIP="cloudsync-apple-xcframework-${VERSION}.zip"
-          if [ -f "$ZIP" ]; then
-            CHECKSUM=$(swift package compute-checksum "$ZIP")
-            URL="https://github.com/sqliteai/sqlite-sync/releases/download/${VERSION}/${ZIP}"
-            sed -i "s|url: \".*cloudsync-apple-xcframework.*\"|url: \"${URL}\"|" Package.swift
-            sed -i "s|checksum: \".*\"|checksum: \"${CHECKSUM}\"|" Package.swift
-            git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
-            git config --global user.name "$GITHUB_ACTOR"
-            git add Package.swift
-            git commit -m "Update Package.swift checksum for ${VERSION} [skip ci]" || true
-            git push origin main || true
-          fi
-
       - name: release tag version from cloudsync.h
         id: tag
         run: |
@@ -526,6 +510,23 @@ jobs:
           cd expo-package
           npm publish --provenance --access public --tag latest
           echo "✓ Published @sqliteai/sqlite-sync-expo@${{ steps.tag.outputs.version }}"
+
+      - name: update Package.swift checksum and version
+        if: steps.tag.outputs.version != ''
+        run: |
+          VERSION=${{ steps.tag.outputs.version }}
+          ZIP="cloudsync-apple-xcframework-${VERSION}.zip"
+          if [ -f "$ZIP" ]; then
+            CHECKSUM=$(swift package compute-checksum "$ZIP")
+            URL="https://github.com/sqliteai/sqlite-sync/releases/download/${VERSION}/${ZIP}"
+            sed -i "s|url: \".*cloudsync-apple-xcframework.*\"|url: \"${URL}\"|" Package.swift
+            sed -i "s|checksum: \".*\"|checksum: \"${CHECKSUM}\"|" Package.swift
+            git config --global user.email "$GITHUB_ACTOR@users.noreply.github.com"
+            git config --global user.name "$GITHUB_ACTOR"
+            git add Package.swift
+            git commit -m "Update Package.swift checksum for ${VERSION} [skip ci]" || true
+            git push origin main || true
+          fi
 
       - uses: softprops/action-gh-release@v2.2.1
         if: steps.tag.outputs.version != ''
