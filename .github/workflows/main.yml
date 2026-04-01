@@ -361,8 +361,9 @@ jobs:
                   tar -czf "${name}-${VERSION}.tar.gz" -C "$folder" .
                 fi
                 if [[ "$name" == "cloudsync-apple-xcframework" ]]; then
-                  # Use the ditto-created zip that preserves macOS symlinks
-                  mv "$folder/CloudSync.xcframework.zip" "${name}-${VERSION}.zip"
+                  # Use the ditto-created zip that preserves macOS symlinks and extract for other steps
+                  cp "$folder/CloudSync.xcframework.zip" "${name}-${VERSION}.zip"
+                  unzip -q "$folder/CloudSync.xcframework.zip" -d "$folder/"
                 elif [[ "$name" != "cloudsync-android-aar" ]]; then
                   (cd "$folder" && zip -rq "../../${name}-${VERSION}.zip" .)
                 else
