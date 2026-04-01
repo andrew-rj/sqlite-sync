@@ -168,7 +168,7 @@ jobs:
           codesign --sign "${{ secrets.APPLE_TEAM_ID }}" --timestamp --options runtime dist/CloudSync.xcframework # Then sign the xcframework wrapper
           ditto -c -k --keepParent dist/CloudSync.xcframework dist/CloudSync.xcframework.zip
           xcrun notarytool submit dist/CloudSync.xcframework.zip --apple-id "${{ secrets.APPLE_ID }}" --password "${{ secrets.APPLE_PASSWORD }}" --team-id "${{ secrets.APPLE_TEAM_ID }}" --wait
-          rm dist/CloudSync.xcframework.zip
+          rm -rf dist/CloudSync.xcframework
 
       - name: cleanup keychain for codesign
         if: matrix.os == 'macos-15'
@@ -360,8 +360,11 @@ jobs:
                 if [[ "$name" != "cloudsync-apple-xcframework" && "$name" != "cloudsync-android-aar" ]]; then
                   tar -czf "${name}-${VERSION}.tar.gz" -C "$folder" .
                 fi
-                if [[ "$name" != "cloudsync-android-aar" ]]; then
-                  (cd "$folder" && zip -rq --symlinks "../../${name}-${VERSION}.zip" .)
+                if [[ "$name" == "cloudsync-apple-xcframework" ]]; then
+                  # Use the ditto-created zip that preserves macOS symlinks
+                  mv "$folder/CloudSync.xcframework.zip" "${name}-${VERSION}.zip"
+                elif [[ "$name" != "cloudsync-android-aar" ]]; then
+                  (cd "$folder" && zip -rq "../../${name}-${VERSION}.zip" .)
                 else
                   cp "$folder"/*.aar "${name}-${VERSION}.aar"
                 fi
