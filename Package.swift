@@ -7,27 +7,20 @@ let package = Package(
     name: "CloudSync",
     platforms: [.macOS(.v11), .iOS(.v11)],
     products: [
-        // Products can be used to vend plugins, making them visible to other packages.
-        .plugin(
-            name: "CloudSyncPlugin",
-            targets: ["CloudSyncPlugin"]),
         .library(
             name: "CloudSync",
             targets: ["CloudSync"])
     ],
     targets: [
-        // Build tool plugin that invokes the Makefile
-        .plugin(
-            name: "CloudSyncPlugin",
-            capability: .buildTool(),
-            path: "packages/swift/plugin"
+        .binaryTarget(
+            name: "CloudSyncBinary",
+            url: "https://github.com/sqliteai/sqlite-sync/releases/download/1.0.0/cloudsync-apple-xcframework-1.0.0.zip",
+            checksum: "024b30a6e53e726344e16d83b9583b6524d30b24eac4c0b7d4704f36d84e24f8"
         ),
-        // CloudSync library target
         .target(
             name: "CloudSync",
-            dependencies: [],
-            path: "packages/swift/extension",
-            plugins: ["CloudSyncPlugin"]
+            dependencies: ["CloudSyncBinary"],
+            path: "packages/swift"
         ),
     ]
 )
