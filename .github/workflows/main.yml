@@ -361,7 +361,7 @@ jobs:
                   tar -czf "${name}-${VERSION}.tar.gz" -C "$folder" .
                 fi
                 if [[ "$name" != "cloudsync-android-aar" ]]; then
-                  (cd "$folder" && zip -rq "../../${name}-${VERSION}.zip" .)
+                  (cd "$folder" && zip -rq --symlinks "../../${name}-${VERSION}.zip" .)
                 else
                   cp "$folder"/*.aar "${name}-${VERSION}.aar"
                 fi
