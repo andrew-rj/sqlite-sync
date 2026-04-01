@@ -405,11 +405,11 @@ $(DIST_DIR)/%.xcframework: $(LIB_NAMES)
 	printf "$(MODULEMAP)" > $(DIST_DIR)/$$fmwk/CloudSync.framework/Versions/A/Modules/module.modulemap; \
 	mv $(DIST_DIR)/$$lib $(DIST_DIR)/$$fmwk/CloudSync.framework/Versions/A/CloudSync; \
 	install_name_tool -id "@rpath/CloudSync.framework/CloudSync" $(DIST_DIR)/$$fmwk/CloudSync.framework/Versions/A/CloudSync; \
-	cd $(DIST_DIR)/$$fmwk/CloudSync.framework/Versions && ln -sf A Current; \
-	cd $(DIST_DIR)/$$fmwk/CloudSync.framework && ln -sf Versions/Current/CloudSync CloudSync; \
-	cd $(DIST_DIR)/$$fmwk/CloudSync.framework && ln -sf Versions/Current/Headers Headers; \
-	cd $(DIST_DIR)/$$fmwk/CloudSync.framework && ln -sf Versions/Current/Modules Modules; \
-	cd $(DIST_DIR)/$$fmwk/CloudSync.framework && ln -sf Versions/Current/Resources Resources;
+	ln -sf A $(DIST_DIR)/$$fmwk/CloudSync.framework/Versions/Current; \
+	ln -sf Versions/Current/CloudSync $(DIST_DIR)/$$fmwk/CloudSync.framework/CloudSync; \
+	ln -sf Versions/Current/Headers $(DIST_DIR)/$$fmwk/CloudSync.framework/Headers; \
+	ln -sf Versions/Current/Modules $(DIST_DIR)/$$fmwk/CloudSync.framework/Modules; \
+	ln -sf Versions/Current/Resources $(DIST_DIR)/$$fmwk/CloudSync.framework/Resources;
 	xcodebuild -create-xcframework $(foreach fmwk,$(FMWK_NAMES),-framework $(DIST_DIR)/$(fmwk)/CloudSync.framework) -output $@
 	rm -rf $(foreach fmwk,$(FMWK_NAMES),$(DIST_DIR)/$(fmwk))
 
