@@ -110,13 +110,13 @@ Verify the image was built:
 
 ```bash
 docker images | grep supabase-postgres-cloudsync
-# Should show: sqlcdamlayildiz/supabase-postgres-cloudsync   15.8.1.085   ...
+# Should show: <your-dockerhub-username>/supabase-postgres-cloudsync   15.8.1.085   ...
 ```
 
 Verify CloudSync is installed inside the image:
 
 ```bash
-docker run --rm sqlcdamlayildiz/supabase-postgres-cloudsync:15.8.1.085 \
+docker run --rm <your-dockerhub-username>/supabase-postgres-cloudsync:15.8.1.085 \
   find / -name "cloudsync*" -type f 2>/dev/null
 # Should list cloudsync.so, cloudsync.control, and cloudsync--1.0.sql
 # in /nix/store/...-postgresql-and-plugins-15.8/ paths
@@ -394,10 +394,10 @@ services:
   db:
     # BEFORE: image: supabase/postgres:${POSTGRES_VERSION}
     # AFTER:
-    image: <your-dockerhub-username>/supabase-postgres-cloudsync:15.8.1.085
+    image: sqlitecloud/sqlite-sync-supabase:15.8.1.085
 ```
 
-Use the exact image path you pushed in Step 3.
+Use `sqlitecloud/sqlite-sync-supabase:15.8.1.085` if you want the published image. If you built and pushed your own image in Step 3 for internal testing, use that exact image path instead.
 
 ### Add the CloudSync init script
 
