@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.8] - 2026-04-03
+
+### Changed
+
+- **CI/CD**: Fix flutter package publish workflow not triggering on new releases.
+
+## [1.0.7] - 2026-04-02
+
+### Fixed
+
+- **Harden table initialization against stale config and error cleanup.**
+
+## [1.0.2] - 2026-03-25
+
+### Fixed
+
+- **Swift Package**: Use binary target and versioned macOS framework for Xcode 26 compatibility.
+- **Minor bugs** in tests, docs, and examples related to the 1.0.0 major release.
+
 ## [1.0.0] - 2026-03-24
 
 ### Added
