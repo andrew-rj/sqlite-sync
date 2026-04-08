@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define CLOUDSYNC_VERSION                       "1.0.9"
+#define CLOUDSYNC_VERSION                       "1.0.10"
 #define CLOUDSYNC_MAX_TABLENAME_LEN             512
 
 #define CLOUDSYNC_VALUE_NOTSET                  -1
@@ -95,6 +95,8 @@ int    cloudsync_payload_get (cloudsync_context *data, char **blob, int *blob_si
 int    cloudsync_payload_save (cloudsync_context *data, const char *payload_path, int *blob_size); // available only on Desktop OS (no WASM, no mobile)
 
 // CloudSync table context
+int cloudsync_refill_metatable (cloudsync_context *data, const char *table_name);
+int cloudsync_reset_metatable (cloudsync_context *data, const char *table_name);
 cloudsync_table_context *table_lookup (cloudsync_context *data, const char *table_name);
 void *table_column_lookup (cloudsync_table_context *table, const char *col_name, bool is_merge, int *index);
 bool table_enabled (cloudsync_table_context *table);
