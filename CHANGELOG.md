@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.10] - 2026-04-08
+
+### Fixed
+
+- **PostgreSQL**: Prevent debug assertion crash on `cloudsync_init` error path (#37).
+- **Row filter**: `cloudsync_set_filter` and `cloudsync_clear_filter` now reset the metatable and refill it from scratch, ensuring only rows matching the active filter are tracked for sync (#38).
+
+### Added
+
+- Row filter edge-case test coverage: clear/change filter lifecycle, complex expressions (AND, IS NULL), row enter/exit via UPDATE, composite PK with multi-column filters, multi-table roundtrip sync, and pre-existing data prefill tests for both SQLite and PostgreSQL.
+
 ## [1.0.9] - 2026-04-08
 
 ### Changed
