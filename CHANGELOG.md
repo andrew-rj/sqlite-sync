@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.12] - 2026-04-11
+
+### Fixed
+
+- **Settings loader**: Prevent infinite loop in `sqlite3_cloudsync_init` when reopening a database that has a persisted block-column setting. `dbutils_settings_table_load_callback` was calling `cloudsync_setup_block_column`, which `REPLACE`d the same row into `cloudsync_table_settings` while `sqlite3_exec` was still iterating it, re-feeding the rewritten row to the cursor. Added a `persist` flag to `cloudsync_setup_block_column` so the loader replays the in-memory setup without writing back.
+- **PostgreSQL tests**: Updated 168 `cloudsync_init` callsites across 43 `test/postgresql/*.sql` files to pass integer flags (`0`/`1`) instead of `true`/`false`, matching the signature change in 1.0.9.
+- **CI**: The `postgres-test` job now fails on SQL errors and `[FAIL]` markers. `psql` is run with `ON_ERROR_STOP=on`, `pipefail` is enabled around the `tee`, and the captured log is grepped for `[FAIL]` / `psql ERROR` as a final guard.
+
+### Added
+
+- Unit test `do_test_block_column_reload` (Block Column Reload) that persists a block column with a custom delimiter, closes the database, and reopens it — without the fix this hangs the test process.
+
 ## [1.0.11] - 2026-04-11
 
 ### Fixed
