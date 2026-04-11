@@ -61,11 +61,10 @@ WHERE site_id = cloudsync_siteid() \gset
 SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _reinit_dst \gset
 
 -- The apply may error due to schema mismatch, or succeed silently.
--- Either outcome is acceptable — the key is no corruption.
-\set apply_ok true
+-- Either outcome is acceptable — the key is no corruption (verified below).
+\set ON_ERROR_STOP off
 SELECT cloudsync_payload_apply(decode(:'payload_post_alter', 'hex')) AS _apply_mismatch \gset
--- If the above errors, psql continues (ON_ERROR_STOP is off) and apply_ok stays true.
--- The test just verifies integrity below.
+\set ON_ERROR_STOP on
 
 -- Verify database is in a consistent state (not corrupted)
 SELECT COUNT(*) AS final_count FROM test_tbl \gset

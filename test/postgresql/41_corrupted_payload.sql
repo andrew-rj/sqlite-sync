@@ -76,8 +76,10 @@ SELECT (:fail::int + 1) AS fail \gset
 -- Test 3: Truncated payload (first 10 bytes of valid payload)
 -- Build truncated hex at top level using psql variable interpolation
 SELECT substr(:'valid_payload_hex', 1, 20) AS truncated_hex \gset
+-- Expected: error on truncated payload — locally disable ON_ERROR_STOP
+\set ON_ERROR_STOP off
 SELECT cloudsync_payload_apply(decode(:'truncated_hex', 'hex')) AS _apply_truncated \gset
--- If the above errors, psql continues (ON_ERROR_STOP is off)
+\set ON_ERROR_STOP on
 
 SELECT COUNT(*) AS count_after_truncated FROM test_tbl \gset
 SELECT (:count_after_truncated::int = :initial_count::int) AS truncated_ok \gset
@@ -95,8 +97,10 @@ SELECT
   || lpad(to_hex(get_byte(decode(substr(:'valid_payload_hex', length(:'valid_payload_hex') / 2, 2), 'hex'), 0) # 255), 2, '0')
   || substr(:'valid_payload_hex', length(:'valid_payload_hex') / 2 + 2)
   AS corrupted_hex \gset
+-- Expected: error on corrupted payload — locally disable ON_ERROR_STOP
+\set ON_ERROR_STOP off
 SELECT cloudsync_payload_apply(decode(:'corrupted_hex', 'hex')) AS _apply_corrupted \gset
--- If the above errors, psql continues (ON_ERROR_STOP is off)
+\set ON_ERROR_STOP on
 
 SELECT COUNT(*) AS count_after_flipped FROM test_tbl \gset
 SELECT (:count_after_flipped::int = :initial_count::int) AS flipped_ok \gset
