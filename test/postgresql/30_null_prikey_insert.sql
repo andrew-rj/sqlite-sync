@@ -22,7 +22,7 @@ CREATE TABLE t_null_pk (
     value TEXT
 );
 
-SELECT cloudsync_init('t_null_pk', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('t_null_pk', 'CLS', 1) AS _init \gset
 
 -- Test 1: INSERT with NULL primary key should fail
 DO $$

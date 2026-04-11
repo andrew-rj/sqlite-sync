@@ -27,7 +27,7 @@ CREATE TABLE bool_test (
     name TEXT
 );
 
-SELECT cloudsync_init('bool_test', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('bool_test', 'CLS', 1) AS _init_a \gset
 
 -- Setup Database B
 \connect cloudsync_test_25b
@@ -40,7 +40,7 @@ CREATE TABLE bool_test (
     name TEXT
 );
 
-SELECT cloudsync_init('bool_test', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('bool_test', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- STEP 1: Insert NULL BOOLEAN first (triggers SPI plan caching)

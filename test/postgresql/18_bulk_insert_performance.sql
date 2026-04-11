@@ -30,7 +30,7 @@ CREATE TABLE items (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('items', 'CLS', false) AS _init_a \gset
+SELECT cloudsync_init('items', 'CLS', 0) AS _init_a \gset
 
 -- ============================================================================
 -- Record start time
@@ -139,7 +139,7 @@ CREATE TABLE items (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('items', 'CLS', false) AS _init_b \gset
+SELECT cloudsync_init('items', 'CLS', 0) AS _init_b \gset
 
 -- ============================================================================
 -- Apply payload to Database B and measure time

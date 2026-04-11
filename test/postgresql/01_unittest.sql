@@ -72,7 +72,7 @@ SELECT (:fail::int + 1) AS fail \gset
 \endif
 DROP TABLE IF EXISTS smoke_tbl;
 CREATE TABLE smoke_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id \gset
 SELECT (to_regclass('public.smoke_tbl_cloudsync') IS NOT NULL) AS init_create_ok \gset
 \if :init_create_ok
 \echo [PASS] (:testid) Test init create
@@ -303,8 +303,8 @@ SELECT (:fail::int + 1) AS fail \gset
 \endif
 
 -- 'Test double init no-op'
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id2 \gset
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id3 \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id2 \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id3 \gset
 \echo [PASS] (:testid) Test double init no-op
 
 -- 'Test payload encode signature'

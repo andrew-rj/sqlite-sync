@@ -19,7 +19,7 @@ DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
 
 -- Initialize cloudsync for the table
-SELECT cloudsync_init('docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init \gset
 
 -- Configure body column as block-level
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol \gset
@@ -116,7 +116,7 @@ CREATE DATABASE cloudsync_block_test_b;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init_b \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_b \gset
 
 SELECT cloudsync_payload_apply(decode(:'block_payload_hex', 'hex')) AS _apply_b \gset

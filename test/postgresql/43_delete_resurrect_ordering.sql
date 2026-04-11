@@ -19,19 +19,19 @@ CREATE DATABASE cloudsync_test_43_c;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_a \gset
 
 \connect cloudsync_test_43_b
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_b \gset
 
 \connect cloudsync_test_43_c
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_c \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_c \gset
 
 -- Round 1: A inserts row, sync to all
 \connect cloudsync_test_43_a

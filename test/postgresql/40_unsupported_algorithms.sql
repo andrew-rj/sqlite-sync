@@ -20,7 +20,7 @@ CREATE TABLE test_aws (id TEXT PRIMARY KEY, val TEXT);
 -- Test DWS rejection
 DO $$
 BEGIN
-  PERFORM cloudsync_init('test_dws', 'dws', true);
+  PERFORM cloudsync_init('test_dws', 'dws', 1);
   RAISE EXCEPTION 'cloudsync_init with dws should have failed';
 EXCEPTION WHEN OTHERS THEN
   IF SQLERRM NOT LIKE '%not yet supported%' THEN
@@ -42,7 +42,7 @@ SELECT (:fail::int + 1) AS fail \gset
 -- Test AWS rejection
 DO $$
 BEGIN
-  PERFORM cloudsync_init('test_aws', 'aws', true);
+  PERFORM cloudsync_init('test_aws', 'aws', 1);
   RAISE EXCEPTION 'cloudsync_init with aws should have failed';
 EXCEPTION WHEN OTHERS THEN
   IF SQLERRM NOT LIKE '%not yet supported%' THEN
@@ -62,7 +62,7 @@ SELECT (:fail::int + 1) AS fail \gset
 \endif
 
 -- Verify CLS still works (sanity check)
-SELECT cloudsync_init('test_dws', 'cls', true) AS _init_cls \gset
+SELECT cloudsync_init('test_dws', 'cls', 1) AS _init_cls \gset
 SELECT COUNT(*) = 1 AS cls_meta_ok
 FROM information_schema.tables
 WHERE table_name = 'test_dws_cloudsync' \gset

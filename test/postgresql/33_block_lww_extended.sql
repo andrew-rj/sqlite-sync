@@ -19,7 +19,7 @@ CREATE DATABASE cloudsync_block_ext_b;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init_a \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_a \gset
 
 -- ============================================================
@@ -166,7 +166,7 @@ SELECT (:fail::int + 1) AS fail \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init_b \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_b \gset
 
 -- Insert initial doc on db A

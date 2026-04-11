@@ -24,7 +24,7 @@ CREATE TABLE typed_tbl (
     bin_col BYTEA
 );
 
-SELECT cloudsync_init('typed_tbl', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('typed_tbl', 'CLS', 1) AS _init_a \gset
 
 INSERT INTO typed_tbl VALUES (
     'row1',
@@ -63,19 +63,19 @@ CREATE TABLE typed_tbl (
     bin_col BYTEA
 );
 
-SELECT cloudsync_init('typed_tbl', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('typed_tbl', 'CLS', 1) AS _init_b \gset
 
 -- Encode and apply A -> B
 \connect cloudsync_test_45_a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('typed_tbl', 'CLS', true) AS _reinit \gset
+SELECT cloudsync_init('typed_tbl', 'CLS', 1) AS _reinit \gset
 SELECT encode(cloudsync_payload_encode(tbl, pk, col_name, col_value, col_version, db_version, site_id, cl, seq), 'hex') AS payload_a
 FROM cloudsync_changes
 WHERE site_id = cloudsync_siteid() \gset
 
 \connect cloudsync_test_45_b
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('typed_tbl', 'CLS', true) AS _reinit \gset
+SELECT cloudsync_init('typed_tbl', 'CLS', 1) AS _reinit \gset
 SELECT cloudsync_payload_apply(decode(:'payload_a', 'hex')) AS apply_a_to_b \gset
 
 -- Verify row count

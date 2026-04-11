@@ -27,7 +27,7 @@ CREATE TABLE composite_pk_tbl (
     PRIMARY KEY (pk_text1, pk_int1, pk_text2, pk_int2, pk_text3)
 );
 
-SELECT cloudsync_init('composite_pk_tbl', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('composite_pk_tbl', 'CLS', 1) AS _init_a \gset
 
 INSERT INTO composite_pk_tbl VALUES ('alpha', 1, 'beta', 100, 'gamma', 'data_a1', 42);
 INSERT INTO composite_pk_tbl VALUES ('alpha', 2, 'beta', 200, 'delta', 'data_a2', 84);
@@ -49,7 +49,7 @@ CREATE TABLE composite_pk_tbl (
     PRIMARY KEY (pk_text1, pk_int1, pk_text2, pk_int2, pk_text3)
 );
 
-SELECT cloudsync_init('composite_pk_tbl', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('composite_pk_tbl', 'CLS', 1) AS _init_b \gset
 
 INSERT INTO composite_pk_tbl VALUES ('alpha', 1, 'beta', 100, 'gamma', 'data_b1', 99);
 INSERT INTO composite_pk_tbl VALUES ('foo', 3, 'bar', 300, 'baz', 'data_b2', 77);
@@ -57,14 +57,14 @@ INSERT INTO composite_pk_tbl VALUES ('foo', 3, 'bar', 300, 'baz', 'data_b2', 77)
 -- Encode and exchange payloads
 \connect cloudsync_test_44_a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('composite_pk_tbl', 'CLS', true) AS _reinit \gset
+SELECT cloudsync_init('composite_pk_tbl', 'CLS', 1) AS _reinit \gset
 SELECT encode(cloudsync_payload_encode(tbl, pk, col_name, col_value, col_version, db_version, site_id, cl, seq), 'hex') AS payload_a
 FROM cloudsync_changes
 WHERE site_id = cloudsync_siteid() \gset
 
 \connect cloudsync_test_44_b
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('composite_pk_tbl', 'CLS', true) AS _reinit \gset
+SELECT cloudsync_init('composite_pk_tbl', 'CLS', 1) AS _reinit \gset
 SELECT encode(cloudsync_payload_encode(tbl, pk, col_name, col_value, col_version, db_version, site_id, cl, seq), 'hex') AS payload_b
 FROM cloudsync_changes
 WHERE site_id = cloudsync_siteid() \gset
@@ -75,7 +75,7 @@ SELECT cloudsync_payload_apply(decode(:'payload_a', 'hex')) AS apply_a_to_b \gse
 -- Apply B -> A
 \connect cloudsync_test_44_a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('composite_pk_tbl', 'CLS', true) AS _reinit \gset
+SELECT cloudsync_init('composite_pk_tbl', 'CLS', 1) AS _reinit \gset
 SELECT cloudsync_payload_apply(decode(:'payload_b', 'hex')) AS apply_b_to_a \gset
 
 -- Update a row on A
@@ -87,7 +87,7 @@ WHERE site_id = cloudsync_siteid() \gset
 
 \connect cloudsync_test_44_b
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('composite_pk_tbl', 'CLS', true) AS _reinit \gset
+SELECT cloudsync_init('composite_pk_tbl', 'CLS', 1) AS _reinit \gset
 SELECT cloudsync_payload_apply(decode(:'payload_a2', 'hex')) AS apply_a2_to_b \gset
 
 -- Final hash comparison

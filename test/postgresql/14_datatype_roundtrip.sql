@@ -47,7 +47,7 @@ CREATE TABLE all_types (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('all_types', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('all_types', 'CLS', 1) AS _init_a \gset
 
 -- ============================================================================
 -- Insert test data with various values for each type
@@ -176,7 +176,7 @@ CREATE TABLE all_types (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('all_types', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('all_types', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- Apply payload to Database B

@@ -19,7 +19,7 @@ CREATE DATABASE cloudsync_block_edge_b;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_edge_b
@@ -27,7 +27,7 @@ SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _sc \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Insert unicode text on A
@@ -157,14 +157,14 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_edge_a
 DROP TABLE IF EXISTS articles;
 CREATE TABLE articles (id TEXT PRIMARY KEY NOT NULL, body TEXT, notes TEXT);
-SELECT cloudsync_init('articles', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('articles', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('articles', 'body', 'algo', 'block') AS _sc1 \gset
 SELECT cloudsync_set_column('articles', 'notes', 'algo', 'block') AS _sc2 \gset
 
 \connect cloudsync_block_edge_b
 DROP TABLE IF EXISTS articles;
 CREATE TABLE articles (id TEXT PRIMARY KEY NOT NULL, body TEXT, notes TEXT);
-SELECT cloudsync_init('articles', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('articles', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('articles', 'body', 'algo', 'block') AS _sc1 \gset
 SELECT cloudsync_set_column('articles', 'notes', 'algo', 'block') AS _sc2 \gset
 

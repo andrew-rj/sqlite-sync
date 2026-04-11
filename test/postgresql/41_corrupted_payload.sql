@@ -17,7 +17,7 @@ CREATE DATABASE cloudsync_test_41_dst;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_src \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_src \gset
 INSERT INTO test_tbl VALUES ('id1', 'value1');
 INSERT INTO test_tbl VALUES ('id2', 'value2');
 
@@ -31,7 +31,7 @@ WHERE site_id = cloudsync_siteid() \gset
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_dst \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_dst \gset
 
 -- Record initial state
 SELECT COUNT(*) AS initial_count FROM test_tbl \gset

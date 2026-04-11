@@ -53,7 +53,7 @@ CREATE TABLE types_sync_test (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('types_sync_test', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('types_sync_test', 'CLS', 1) AS _init_a \gset
 
 -- ============================================================================
 -- Setup Database B with same schema (before any inserts)
@@ -82,7 +82,7 @@ CREATE TABLE types_sync_test (
     col_timestamp TIMESTAMP
 );
 
-SELECT cloudsync_init('types_sync_test', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('types_sync_test', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- STEP 1: Insert row with ALL NULL values first (triggers SPI plan caching)

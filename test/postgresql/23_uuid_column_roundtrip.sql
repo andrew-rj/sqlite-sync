@@ -36,7 +36,7 @@ CREATE TABLE uuid_sync_test (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('uuid_sync_test', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('uuid_sync_test', 'CLS', 1) AS _init_a \gset
 
 -- ============================================================================
 -- Setup Database B with same schema (before any inserts)
@@ -53,7 +53,7 @@ CREATE TABLE uuid_sync_test (
     id2 UUID
 );
 
-SELECT cloudsync_init('uuid_sync_test', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('uuid_sync_test', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- STEP 1: Sync a single row with non-NULL UUID only (baseline test)

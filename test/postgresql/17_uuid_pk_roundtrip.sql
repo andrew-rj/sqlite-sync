@@ -30,7 +30,7 @@ CREATE TABLE products (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('products', 'CLS', false) AS _init_a \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _init_a \gset
 
 -- ============================================================================
 -- Insert test data with UUIDs
@@ -99,7 +99,7 @@ CREATE TABLE products (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('products', 'CLS', false) AS _init_b \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _init_b \gset
 
 -- ============================================================================
 -- Apply payload to Database B

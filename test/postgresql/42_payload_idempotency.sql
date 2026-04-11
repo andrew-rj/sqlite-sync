@@ -16,7 +16,7 @@ CREATE DATABASE cloudsync_test_42_dst;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT, num INTEGER);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_src \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_src \gset
 INSERT INTO test_tbl VALUES ('id1', 'hello', 10);
 INSERT INTO test_tbl VALUES ('id2', 'world', 20);
 UPDATE test_tbl SET val = 'hello_updated' WHERE id = 'id1';
@@ -31,7 +31,7 @@ WHERE site_id = cloudsync_siteid() \gset
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE test_tbl (id TEXT PRIMARY KEY, val TEXT, num INTEGER);
-SELECT cloudsync_init('test_tbl', 'CLS', true) AS _init_dst \gset
+SELECT cloudsync_init('test_tbl', 'CLS', 1) AS _init_dst \gset
 
 -- Apply #1
 SELECT cloudsync_payload_apply(decode(:'payload_hex', 'hex')) AS apply_1 \gset

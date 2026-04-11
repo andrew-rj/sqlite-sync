@@ -30,7 +30,7 @@ CREATE TABLE null_sync_test (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('null_sync_test', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('null_sync_test', 'CLS', 1) AS _init_a \gset
 
 -- ============================================================================
 -- Insert test data with various NULL combinations
@@ -120,7 +120,7 @@ CREATE TABLE null_sync_test (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('null_sync_test', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('null_sync_test', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- Apply payload to Database B

@@ -33,7 +33,7 @@ CREATE TABLE items (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('items', 'CLS', false) AS _init_a \gset
+SELECT cloudsync_init('items', 'CLS', 0) AS _init_a \gset
 
 -- ============================================================================
 -- ROUND 1: Initial INSERT (A -> B)
@@ -113,7 +113,7 @@ CREATE TABLE items (
     count INTEGER NOT NULL DEFAULT 0
 );
 
-SELECT cloudsync_init('items', 'CLS', false) AS _init_b \gset
+SELECT cloudsync_init('items', 'CLS', 0) AS _init_b \gset
 
 -- Apply round 1 payload
 SELECT cloudsync_payload_apply(decode(:'payload_a_r1', 'hex')) AS apply_r1 \gset

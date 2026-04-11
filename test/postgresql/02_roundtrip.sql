@@ -16,7 +16,7 @@ CREATE DATABASE cloudsync_test_2;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS smoke_tbl;
 CREATE TABLE smoke_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id_b \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id_b \gset
 SELECT cloudsync_payload_apply(decode(:'payload_hex', 'hex')) AS _apply_ok \gset
 SELECT md5(COALESCE(string_agg(id || ':' || COALESCE(val, ''), ',' ORDER BY id), '')) AS smoke_hash_b
 FROM smoke_tbl \gset

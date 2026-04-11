@@ -24,7 +24,7 @@ CREATE DATABASE cloudsync_block_r4_c;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS uuid_docs;
 CREATE TABLE uuid_docs (id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(), body TEXT);
-SELECT cloudsync_init('uuid_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('uuid_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('uuid_docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r4_b
@@ -32,7 +32,7 @@ SELECT cloudsync_set_column('uuid_docs', 'body', 'algo', 'block') AS _sc \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS uuid_docs;
 CREATE TABLE uuid_docs (id UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(), body TEXT);
-SELECT cloudsync_init('uuid_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('uuid_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('uuid_docs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Insert on A with explicit UUID
@@ -92,14 +92,14 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r4_a
 DROP TABLE IF EXISTS rls_docs;
 CREATE TABLE rls_docs (id TEXT PRIMARY KEY NOT NULL, owner_id INTEGER, body TEXT);
-SELECT cloudsync_init('rls_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('rls_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('rls_docs', 'body', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_filter('rls_docs', 'owner_id = 1') AS _sf \gset
 
 \connect cloudsync_block_r4_b
 DROP TABLE IF EXISTS rls_docs;
 CREATE TABLE rls_docs (id TEXT PRIMARY KEY NOT NULL, owner_id INTEGER, body TEXT);
-SELECT cloudsync_init('rls_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('rls_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('rls_docs', 'body', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_filter('rls_docs', 'owner_id = 1') AS _sf \gset
 
@@ -162,8 +162,8 @@ DROP TABLE IF EXISTS articles;
 DROP TABLE IF EXISTS comments;
 CREATE TABLE articles (id TEXT PRIMARY KEY NOT NULL, content TEXT);
 CREATE TABLE comments (id TEXT PRIMARY KEY NOT NULL, text_body TEXT);
-SELECT cloudsync_init('articles', 'CLS', true) AS _init \gset
-SELECT cloudsync_init('comments', 'CLS', true) AS _init2 \gset
+SELECT cloudsync_init('articles', 'CLS', 1) AS _init \gset
+SELECT cloudsync_init('comments', 'CLS', 1) AS _init2 \gset
 SELECT cloudsync_set_column('articles', 'content', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_column('comments', 'text_body', 'algo', 'block') AS _sc2 \gset
 
@@ -172,8 +172,8 @@ DROP TABLE IF EXISTS articles;
 DROP TABLE IF EXISTS comments;
 CREATE TABLE articles (id TEXT PRIMARY KEY NOT NULL, content TEXT);
 CREATE TABLE comments (id TEXT PRIMARY KEY NOT NULL, text_body TEXT);
-SELECT cloudsync_init('articles', 'CLS', true) AS _init \gset
-SELECT cloudsync_init('comments', 'CLS', true) AS _init2 \gset
+SELECT cloudsync_init('articles', 'CLS', 1) AS _init \gset
+SELECT cloudsync_init('comments', 'CLS', 1) AS _init2 \gset
 SELECT cloudsync_set_column('articles', 'content', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_column('comments', 'text_body', 'algo', 'block') AS _sc2 \gset
 
@@ -226,21 +226,21 @@ CREATE DATABASE cloudsync_block_3s_c;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE tdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('tdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('tdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('tdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_3s_b
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE tdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('tdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('tdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('tdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_3s_c
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE tdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('tdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('tdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('tdocs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Initial insert on A, sync to B and C
@@ -367,14 +367,14 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r4_a
 DROP TABLE IF EXISTS para_docs;
 CREATE TABLE para_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('para_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('para_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('para_docs', 'body', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_column('para_docs', 'body', 'delimiter', E'\n\n') AS _sd \gset
 
 \connect cloudsync_block_r4_b
 DROP TABLE IF EXISTS para_docs;
 CREATE TABLE para_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('para_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('para_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('para_docs', 'body', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_column('para_docs', 'body', 'delimiter', E'\n\n') AS _sd \gset
 
@@ -434,13 +434,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r4_a
 DROP TABLE IF EXISTS mixed_docs;
 CREATE TABLE mixed_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT, title TEXT);
-SELECT cloudsync_init('mixed_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('mixed_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('mixed_docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r4_b
 DROP TABLE IF EXISTS mixed_docs;
 CREATE TABLE mixed_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT, title TEXT);
-SELECT cloudsync_init('mixed_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('mixed_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('mixed_docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r4_a

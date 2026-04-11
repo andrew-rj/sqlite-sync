@@ -20,7 +20,7 @@ CREATE DATABASE cloudsync_block_r5_b;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS big_docs;
 CREATE TABLE big_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('big_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('big_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('big_docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r5_b
@@ -28,7 +28,7 @@ SELECT cloudsync_set_column('big_docs', 'body', 'algo', 'block') AS _sc \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS big_docs;
 CREATE TABLE big_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('big_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('big_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('big_docs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Generate 250-line text
@@ -111,13 +111,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r5_a
 DROP TABLE IF EXISTS idem_docs;
 CREATE TABLE idem_docs (owner TEXT NOT NULL, seq INTEGER NOT NULL, body TEXT, PRIMARY KEY(owner, seq));
-SELECT cloudsync_init('idem_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('idem_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('idem_docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r5_b
 DROP TABLE IF EXISTS idem_docs;
 CREATE TABLE idem_docs (owner TEXT NOT NULL, seq INTEGER NOT NULL, body TEXT, PRIMARY KEY(owner, seq));
-SELECT cloudsync_init('idem_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('idem_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('idem_docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r5_a
@@ -172,7 +172,7 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r5_a
 DROP TABLE IF EXISTS predata;
 CREATE TABLE predata (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('predata', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('predata', 'CLS', 1) AS _init \gset
 
 -- Insert rows BEFORE enabling block algorithm
 INSERT INTO predata (id, body) VALUES ('pre1', E'Pre-Line1\nPre-Line2');
@@ -184,7 +184,7 @@ SELECT cloudsync_set_column('predata', 'body', 'algo', 'block') AS _sc \gset
 \connect cloudsync_block_r5_b
 DROP TABLE IF EXISTS predata;
 CREATE TABLE predata (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('predata', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('predata', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('predata', 'body', 'algo', 'block') AS _sc \gset
 
 -- Update a pre-existing row on A to trigger block creation
@@ -232,13 +232,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r5_a
 DROP TABLE IF EXISTS toggle_docs;
 CREATE TABLE toggle_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('toggle_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('toggle_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('toggle_docs', 'body', 'algo', 'block') AS _sc1 \gset
 
 \connect cloudsync_block_r5_b
 DROP TABLE IF EXISTS toggle_docs;
 CREATE TABLE toggle_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('toggle_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('toggle_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('toggle_docs', 'body', 'algo', 'block') AS _sc1 \gset
 
 -- Insert with blocks on A
@@ -299,7 +299,7 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r5_a
 DROP TABLE IF EXISTS delim_docs;
 CREATE TABLE delim_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('delim_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('delim_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('delim_docs', 'body', 'algo', 'block') AS _sc \gset
 -- Use paragraph delimiter (double newline)
 SELECT cloudsync_set_column('delim_docs', 'body', 'delimiter', E'\n\n') AS _sd \gset
@@ -307,7 +307,7 @@ SELECT cloudsync_set_column('delim_docs', 'body', 'delimiter', E'\n\n') AS _sd \
 \connect cloudsync_block_r5_b
 DROP TABLE IF EXISTS delim_docs;
 CREATE TABLE delim_docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('delim_docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('delim_docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('delim_docs', 'body', 'algo', 'block') AS _sc \gset
 SELECT cloudsync_set_column('delim_docs', 'body', 'delimiter', E'\n\n') AS _sd \gset
 

@@ -19,7 +19,7 @@ CREATE DATABASE cloudsync_block_r3_b;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (owner TEXT NOT NULL, seq INTEGER NOT NULL, body TEXT, PRIMARY KEY(owner, seq));
-SELECT cloudsync_init('docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
@@ -27,7 +27,7 @@ SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _sc \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (owner TEXT NOT NULL, seq INTEGER NOT NULL, body TEXT, PRIMARY KEY(owner, seq));
-SELECT cloudsync_init('docs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Insert on A
@@ -85,13 +85,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS edocs;
 CREATE TABLE edocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('edocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('edocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('edocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS edocs;
 CREATE TABLE edocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('edocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('edocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('edocs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Insert empty string on A
@@ -130,13 +130,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS rdocs;
 CREATE TABLE rdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('rdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('rdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('rdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS rdocs;
 CREATE TABLE rdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('rdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('rdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('rdocs', 'body', 'algo', 'block') AS _sc \gset
 
 -- Insert and sync
@@ -195,13 +195,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS notes;
 CREATE TABLE notes (id INTEGER PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('notes', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('notes', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('notes', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS notes;
 CREATE TABLE notes (id INTEGER PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('notes', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('notes', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('notes', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_a
@@ -238,13 +238,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS mdocs;
 CREATE TABLE mdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('mdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('mdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('mdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS mdocs;
 CREATE TABLE mdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('mdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('mdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('mdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_a
@@ -294,13 +294,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS ndocs;
 CREATE TABLE ndocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('ndocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('ndocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('ndocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS ndocs;
 CREATE TABLE ndocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('ndocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('ndocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('ndocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_a
@@ -362,13 +362,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS ldocs;
 CREATE TABLE ldocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('ldocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('ldocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('ldocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS ldocs;
 CREATE TABLE ldocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('ldocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('ldocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('ldocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_a
@@ -405,13 +405,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_r3_a
 DROP TABLE IF EXISTS wdocs;
 CREATE TABLE wdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('wdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('wdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('wdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_b
 DROP TABLE IF EXISTS wdocs;
 CREATE TABLE wdocs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('wdocs', 'CLS', true) AS _init \gset
+SELECT cloudsync_init('wdocs', 'CLS', 1) AS _init \gset
 SELECT cloudsync_set_column('wdocs', 'body', 'algo', 'block') AS _sc \gset
 
 \connect cloudsync_block_r3_a

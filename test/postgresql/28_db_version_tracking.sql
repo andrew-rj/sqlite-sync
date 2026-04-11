@@ -20,13 +20,13 @@ CREATE DATABASE cloudsync_test_28_b;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE todo (id TEXT PRIMARY KEY NOT NULL, title TEXT, status TEXT);
-SELECT cloudsync_init('todo', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('todo', 'CLS', 1) AS _init_a \gset
 
 \connect cloudsync_test_28_b
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE todo (id TEXT PRIMARY KEY NOT NULL, title TEXT, status TEXT);
-SELECT cloudsync_init('todo', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('todo', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================
 -- Test 1: One-way merge (A -> B), mixed insert patterns
@@ -134,13 +134,13 @@ CREATE DATABASE cloudsync_test_28_b;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE todo (id TEXT PRIMARY KEY NOT NULL, title TEXT, status TEXT);
-SELECT cloudsync_init('todo', 'CLS', true) AS _init_a2 \gset
+SELECT cloudsync_init('todo', 'CLS', 1) AS _init_a2 \gset
 
 \connect cloudsync_test_28_b
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE todo (id TEXT PRIMARY KEY NOT NULL, title TEXT, status TEXT);
-SELECT cloudsync_init('todo', 'CLS', true) AS _init_b2 \gset
+SELECT cloudsync_init('todo', 'CLS', 1) AS _init_b2 \gset
 
 -- DB A: two autocommit inserts (db_version 1, 2)
 \connect cloudsync_test_28_a

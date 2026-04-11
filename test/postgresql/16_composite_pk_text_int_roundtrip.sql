@@ -33,7 +33,7 @@ CREATE TABLE mixed_pk (
 );
 
 -- Initialize CloudSync (skip int pk check for this test)
-SELECT cloudsync_init('mixed_pk', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('mixed_pk', 'CLS', 1) AS _init_a \gset
 
 -- ============================================================================
 -- Insert test data
@@ -104,7 +104,7 @@ CREATE TABLE mixed_pk (
 );
 
 -- Initialize CloudSync (skip int pk check for this test)
-SELECT cloudsync_init('mixed_pk', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('mixed_pk', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- Apply payload to Database B

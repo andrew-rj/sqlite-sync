@@ -22,7 +22,7 @@ CREATE DATABASE cloudsync_block_adv_c;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init_a \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_a \gset
 
 \connect cloudsync_block_adv_b
@@ -30,7 +30,7 @@ SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_a \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init_b \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_b \gset
 
 -- Insert initial on A
@@ -194,7 +194,7 @@ SELECT (:fail::int + 1) AS fail \gset
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS docs;
 CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('docs', 'CLS', true) AS _init_c \gset
+SELECT cloudsync_init('docs', 'CLS', 1) AS _init_c \gset
 SELECT cloudsync_set_column('docs', 'body', 'algo', 'block') AS _setcol_c \gset
 
 -- Insert initial on A
@@ -316,13 +316,13 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_adv_a
 DROP TABLE IF EXISTS notes;
 CREATE TABLE notes (id TEXT PRIMARY KEY NOT NULL, body TEXT, title TEXT);
-SELECT cloudsync_init('notes', 'CLS', true) AS _init_notes_a \gset
+SELECT cloudsync_init('notes', 'CLS', 1) AS _init_notes_a \gset
 SELECT cloudsync_set_column('notes', 'body', 'algo', 'block') AS _setcol_notes_a \gset
 
 \connect cloudsync_block_adv_b
 DROP TABLE IF EXISTS notes;
 CREATE TABLE notes (id TEXT PRIMARY KEY NOT NULL, body TEXT, title TEXT);
-SELECT cloudsync_init('notes', 'CLS', true) AS _init_notes_b \gset
+SELECT cloudsync_init('notes', 'CLS', 1) AS _init_notes_b \gset
 SELECT cloudsync_set_column('notes', 'body', 'algo', 'block') AS _setcol_notes_b \gset
 
 \connect cloudsync_block_adv_a
@@ -529,14 +529,14 @@ SELECT (:fail::int + 1) AS fail \gset
 \connect cloudsync_block_adv_a
 DROP TABLE IF EXISTS paragraphs;
 CREATE TABLE paragraphs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('paragraphs', 'CLS', true) AS _init_para \gset
+SELECT cloudsync_init('paragraphs', 'CLS', 1) AS _init_para \gset
 SELECT cloudsync_set_column('paragraphs', 'body', 'algo', 'block') AS _setcol_para \gset
 SELECT cloudsync_set_column('paragraphs', 'body', 'delimiter', E'\n\n') AS _setdelim \gset
 
 \connect cloudsync_block_adv_b
 DROP TABLE IF EXISTS paragraphs;
 CREATE TABLE paragraphs (id TEXT PRIMARY KEY NOT NULL, body TEXT);
-SELECT cloudsync_init('paragraphs', 'CLS', true) AS _init_para_b \gset
+SELECT cloudsync_init('paragraphs', 'CLS', 1) AS _init_para_b \gset
 SELECT cloudsync_set_column('paragraphs', 'body', 'algo', 'block') AS _setcol_para_b \gset
 SELECT cloudsync_set_column('paragraphs', 'body', 'delimiter', E'\n\n') AS _setdelim_b \gset
 

@@ -30,7 +30,7 @@ CREATE TABLE products (
     quantity INTEGER NOT NULL DEFAULT 0
 );
 
-SELECT cloudsync_init('products', 'CLS', false) AS _init_a \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _init_a \gset
 
 INSERT INTO products VALUES ('11111111-1111-1111-1111-111111111111', 'Product A1', 10.99, 100);
 INSERT INTO products VALUES ('22222222-2222-2222-2222-222222222222', 'Product A2', 20.50, 200);
@@ -50,7 +50,7 @@ CREATE TABLE products (
     quantity INTEGER NOT NULL DEFAULT 0
 );
 
-SELECT cloudsync_init('products', 'CLS', false) AS _init_b \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _init_b \gset
 
 INSERT INTO products VALUES ('33333333-3333-3333-3333-333333333333', 'Product B1', 30.00, 300);
 INSERT INTO products VALUES ('44444444-4444-4444-4444-444444444444', 'Product B2', 40.75, 400);
@@ -64,7 +64,7 @@ INSERT INTO products VALUES ('44444444-4444-4444-4444-444444444444', 'Product B2
 -- Encode payload from A
 \connect cloudsync_test_31a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('products', 'CLS', false) AS _reinit \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _reinit \gset
 SELECT encode(
     cloudsync_payload_encode(tbl, pk, col_name, col_value, col_version, db_version, site_id, cl, seq),
     'hex'
@@ -75,7 +75,7 @@ WHERE site_id = cloudsync_siteid() \gset
 -- Apply A's payload to B, encode B's payload
 \connect cloudsync_test_31b
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('products', 'CLS', false) AS _reinit \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _reinit \gset
 SELECT cloudsync_payload_apply(decode(:'payload_a_hex', 'hex')) AS apply_a_to_b \gset
 
 SELECT encode(
@@ -88,7 +88,7 @@ WHERE site_id = cloudsync_siteid() \gset
 -- Apply B's payload to A, verify initial sync
 \connect cloudsync_test_31a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('products', 'CLS', false) AS _reinit \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _reinit \gset
 SELECT cloudsync_payload_apply(decode(:'payload_b_hex', 'hex')) AS apply_b_to_a \gset
 
 SELECT COUNT(*) AS count_a_initial FROM products \gset
@@ -113,7 +113,7 @@ SELECT (:fail::int + 1) AS fail \gset
 
 \connect cloudsync_test_31a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('products', 'CLS', false) AS _reinit \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _reinit \gset
 
 SELECT cloudsync_begin_alter('products') AS begin_alter_a \gset
 \if :begin_alter_a
@@ -165,7 +165,7 @@ SELECT (:fail::int + 1) AS fail \gset
 
 \connect cloudsync_test_31b
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('products', 'CLS', false) AS _reinit \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _reinit \gset
 
 SELECT cloudsync_begin_alter('products') AS begin_alter_b \gset
 \if :begin_alter_b
@@ -219,7 +219,7 @@ WHERE site_id = cloudsync_siteid() \gset
 
 \connect cloudsync_test_31a
 \ir helper_psql_conn_setup.sql
-SELECT cloudsync_init('products', 'CLS', false) AS _reinit \gset
+SELECT cloudsync_init('products', 'CLS', 0) AS _reinit \gset
 SELECT cloudsync_payload_apply(decode(:'payload_b2_hex', 'hex')) AS apply_b2_to_a \gset
 
 SELECT (:apply_b2_to_a >= 0) AS apply_b2_ok \gset

@@ -53,9 +53,9 @@ CREATE TABLE IF NOT EXISTS workouts (
     completed INTEGER DEFAULT 0,
     user_id TEXT
 );
-SELECT cloudsync_init('users', 'CLS', true) AS _init_users_a \gset
-SELECT cloudsync_init('activities', 'CLS', true) AS _init_activities_a \gset
-SELECT cloudsync_init('workouts', 'CLS', true) AS _init_workouts_a \gset
+SELECT cloudsync_init('users', 'CLS', 1) AS _init_users_a \gset
+SELECT cloudsync_init('activities', 'CLS', 1) AS _init_activities_a \gset
+SELECT cloudsync_init('workouts', 'CLS', 1) AS _init_workouts_a \gset
 
 \connect cloudsync_test_11_b
 \ir helper_psql_conn_setup.sql
@@ -87,9 +87,9 @@ CREATE TABLE IF NOT EXISTS workouts (
     completed INTEGER DEFAULT 0,
     user_id TEXT
 );
-SELECT cloudsync_init('users', 'CLS', true) AS _init_users_b \gset
-SELECT cloudsync_init('activities', 'CLS', true) AS _init_activities_b \gset
-SELECT cloudsync_init('workouts', 'CLS', true) AS _init_workouts_b \gset
+SELECT cloudsync_init('users', 'CLS', 1) AS _init_users_b \gset
+SELECT cloudsync_init('activities', 'CLS', 1) AS _init_activities_b \gset
+SELECT cloudsync_init('workouts', 'CLS', 1) AS _init_workouts_b \gset
 
 \connect cloudsync_test_11_c
 \ir helper_psql_conn_setup.sql
@@ -121,9 +121,9 @@ CREATE TABLE IF NOT EXISTS workouts (
     completed INTEGER DEFAULT 0,
     user_id TEXT
 );
-SELECT cloudsync_init('users', 'CLS', true) AS _init_users_c \gset
-SELECT cloudsync_init('activities', 'CLS', true) AS _init_activities_c \gset
-SELECT cloudsync_init('workouts', 'CLS', true) AS _init_workouts_c \gset
+SELECT cloudsync_init('users', 'CLS', 1) AS _init_users_c \gset
+SELECT cloudsync_init('activities', 'CLS', 1) AS _init_activities_c \gset
+SELECT cloudsync_init('workouts', 'CLS', 1) AS _init_workouts_c \gset
 
 -- Step 2: Round 1 seed base data on A, sync to B/C
 \if :{?DEBUG_MERGE}

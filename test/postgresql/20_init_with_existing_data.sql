@@ -51,7 +51,7 @@ SELECT COUNT(*) AS pre_init_count FROM items \gset
 -- NOW call cloudsync_init - this should trigger cloudsync_refill_metatable
 -- ============================================================================
 
-SELECT cloudsync_init('items', 'CLS', false) AS _init_a \gset
+SELECT cloudsync_init('items', 'CLS', 0) AS _init_a \gset
 
 -- ============================================================================
 -- Verify metadata was created for existing rows
@@ -125,7 +125,7 @@ CREATE TABLE items (
 );
 
 -- Initialize CloudSync on empty table
-SELECT cloudsync_init('items', 'CLS', false) AS _init_b \gset
+SELECT cloudsync_init('items', 'CLS', 0) AS _init_b \gset
 
 -- ============================================================================
 -- Apply payload to Database B

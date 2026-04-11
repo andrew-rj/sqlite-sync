@@ -18,14 +18,14 @@ CREATE DATABASE cloudsync_test_39_b;
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE concurrent_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('concurrent_tbl', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('concurrent_tbl', 'CLS', 1) AS _init_a \gset
 
 -- Setup db_b
 \connect cloudsync_test_39_b
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 CREATE TABLE concurrent_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('concurrent_tbl', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('concurrent_tbl', 'CLS', 1) AS _init_b \gset
 
 -- Insert row1 on db_a and sync to db_b
 \connect cloudsync_test_39_a

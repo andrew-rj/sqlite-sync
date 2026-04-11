@@ -35,7 +35,7 @@ CREATE TABLE test_null_sync (
 );
 
 -- Initialize CloudSync
-SELECT cloudsync_init('test_null_sync', 'CLS', true) AS _init_a \gset
+SELECT cloudsync_init('test_null_sync', 'CLS', 1) AS _init_a \gset
 
 -- ============================================================================
 -- Setup Database B - Target database (same schema)
@@ -50,7 +50,7 @@ CREATE TABLE test_null_sync (
     value TEXT
 );
 
-SELECT cloudsync_init('test_null_sync', 'CLS', true) AS _init_b \gset
+SELECT cloudsync_init('test_null_sync', 'CLS', 1) AS _init_b \gset
 
 -- ============================================================================
 -- Test 1: Insert NULL value first, then sync to B

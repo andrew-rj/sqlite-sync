@@ -19,21 +19,21 @@ CREATE DATABASE cloudsync_test_04_c;
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS smoke_tbl;
 CREATE TABLE smoke_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id_a \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id_a \gset
 
 \connect cloudsync_test_04_b
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS smoke_tbl;
 CREATE TABLE smoke_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id_b \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id_b \gset
 
 \connect cloudsync_test_04_c
 \ir helper_psql_conn_setup.sql
 CREATE EXTENSION IF NOT EXISTS cloudsync;
 DROP TABLE IF EXISTS smoke_tbl;
 CREATE TABLE smoke_tbl (id TEXT PRIMARY KEY, val TEXT);
-SELECT cloudsync_init('smoke_tbl', 'CLS', true) AS _init_site_id_c \gset
+SELECT cloudsync_init('smoke_tbl', 'CLS', 1) AS _init_site_id_c \gset
 
 -- Round 1: seed id1 on a single database, then sync
 \connect cloudsync_test_04_a

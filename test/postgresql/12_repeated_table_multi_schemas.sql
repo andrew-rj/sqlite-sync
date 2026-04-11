@@ -27,7 +27,7 @@ CREATE TABLE test_schema.repeated_table (id TEXT PRIMARY KEY, data TEXT);
 
 -- 'Test init on table that exists in multiple schemas (default: public)'
 SELECT cloudsync_cleanup('repeated_table') AS _cleanup_repeated \gset
-SELECT cloudsync_init('repeated_table', 'CLS', true) AS _init_repeated_public \gset
+SELECT cloudsync_init('repeated_table', 'CLS', 1) AS _init_repeated_public \gset
 SELECT cloudsync_table_schema('repeated_table') AS repeated_schema_public \gset
 SELECT (:'repeated_schema_public' = 'public') AS repeated_schema_public_ok \gset
 \if :repeated_schema_public_ok
@@ -109,7 +109,7 @@ SELECT (:fail::int + 1) AS fail \gset
 
 -- 'Test cloudsync_set_schema and init on test_schema'
 SELECT cloudsync_set_schema('test_schema') AS _set_schema \gset
-SELECT cloudsync_init('repeated_table', 'CLS', true) AS _init_repeated_test_schema \gset
+SELECT cloudsync_init('repeated_table', 'CLS', 1) AS _init_repeated_test_schema \gset
 SELECT cloudsync_table_schema('repeated_table') AS repeated_schema_test_schema \gset
 SELECT (:'repeated_schema_test_schema' = 'test_schema') AS repeated_schema_test_schema_ok \gset
 \if :repeated_schema_test_schema_ok
