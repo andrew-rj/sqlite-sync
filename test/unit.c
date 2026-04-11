@@ -9001,6 +9001,96 @@ static int64_t do_select_int(sqlite3 *db, const char *sql) {
     return val;
 }
 
+// Regression: persisted block-column settings must not cause an infinite loop
+// when the extension is reloaded. Without the fix, dbutils_settings_table_load_callback
+// (driven by sqlite3_exec over cloudsync_table_settings) would re-invoke
+// cloudsync_setup_block_column, which REPLACEd the same row mid-iteration and
+// re-fed it back into the cursor.
+bool do_test_block_column_reload(bool cleanup_databases) {
+    bool result = false;
+    char dbpath[256];
+    time_t timestamp = time(NULL);
+
+    #ifdef __ANDROID__
+    snprintf(dbpath, sizeof(dbpath), "%s/cloudsync-test-blockreload-%ld.sqlite", ".", timestamp);
+    #else
+    snprintf(dbpath, sizeof(dbpath), "%s/cloudsync-test-blockreload-%ld.sqlite", getenv("HOME"), timestamp);
+    #endif
+
+    // Phase 1: create database, table, init cloudsync, mark a column as block algo.
+    // Use a custom delimiter so both "algo" and "delimiter" rows get persisted.
+    sqlite3 *db = NULL;
+    int rc = sqlite3_open(dbpath, &db);
+    if (rc != SQLITE_OK) return false;
+    sqlite3_exec(db, "PRAGMA journal_mode=WAL;", NULL, NULL, NULL);
+    sqlite3_cloudsync_init(db, NULL, NULL);
+
+    rc = sqlite3_exec(db, "CREATE TABLE docs (id TEXT PRIMARY KEY NOT NULL, body TEXT);", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    rc = sqlite3_exec(db, "SELECT cloudsync_init('docs');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    rc = sqlite3_exec(db, "SELECT cloudsync_set_column('docs', 'body', 'algo', 'block');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    rc = sqlite3_exec(db, "SELECT cloudsync_set_column('docs', 'body', 'delimiter', '\n');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    // Insert something so the blocks table is populated.
+    rc = sqlite3_exec(db, "INSERT INTO docs (id, body) VALUES ('doc1', 'AAA\nBBB\nCCC');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    int64_t settings_before = do_select_int(db, "SELECT count(*) FROM cloudsync_table_settings WHERE tbl_name='docs' AND col_name='body';");
+
+    sqlite3_exec(db, "SELECT cloudsync_terminate();", NULL, NULL, NULL);
+    sqlite3_close(db);
+    db = NULL;
+
+    // Phase 2: reopen — sqlite3_cloudsync_init triggers dbutils_settings_load,
+    // which iterates cloudsync_table_settings and replays the block-column setup.
+    // Without the fix this hangs (infinite REPLACE-during-iteration loop).
+    rc = sqlite3_open(dbpath, &db);
+    if (rc != SQLITE_OK) goto cleanup;
+    rc = sqlite3_cloudsync_init(db, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    // Settings table should be unchanged after reload (no duplicate rewrites).
+    int64_t settings_after = do_select_int(db, "SELECT count(*) FROM cloudsync_table_settings WHERE tbl_name='docs' AND col_name='body';");
+    if (settings_after != settings_before) {
+        printf("block_column_reload: settings count changed across reload (before=%" PRId64 ", after=%" PRId64 ")\n", settings_before, settings_after);
+        goto cleanup;
+    }
+
+    // Block column wiring must still be active after reload: an UPDATE should
+    // continue to write per-block metadata, not a single whole-column entry.
+    rc = sqlite3_exec(db, "UPDATE docs SET body='AAA\nXXX\nCCC' WHERE id='doc1';", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) goto cleanup;
+
+    int64_t whole_meta = do_select_int(db, "SELECT count(*) FROM docs_cloudsync WHERE col_name='body';");
+    if (whole_meta != 0) {
+        printf("block_column_reload: expected 0 whole-column metadata entries after reload, got %" PRId64 "\n", whole_meta);
+        goto cleanup;
+    }
+
+    result = true;
+
+cleanup:
+    if (db) {
+        sqlite3_exec(db, "SELECT cloudsync_terminate();", NULL, NULL, NULL);
+        sqlite3_close(db);
+    }
+    if (cleanup_databases) {
+        file_delete_internal(dbpath);
+        char walpath[280];
+        snprintf(walpath, sizeof(walpath), "%s-wal", dbpath);
+        file_delete_internal(walpath);
+        snprintf(walpath, sizeof(walpath), "%s-shm", dbpath);
+        file_delete_internal(walpath);
+    }
+    return result;
+}
+
 static char *do_select_text(sqlite3 *db, const char *sql) {
     sqlite3_stmt *stmt = NULL;
     char *val = NULL;
@@ -12056,6 +12146,7 @@ int main (int argc, const char * argv[]) {
     result += test_report("Large Composite PK Test:", do_test_large_composite_pk(2, print_result, cleanup_databases));
     result += test_report("Schema Hash Mismatch:", do_test_schema_hash_mismatch(2, print_result, cleanup_databases));
     result += test_report("Stale Table Settings:", do_test_stale_table_settings(cleanup_databases));
+    result += test_report("Block Column Reload:", do_test_block_column_reload(cleanup_databases));
     result += test_report("CB Error Cleanup:", do_test_context_cb_error_cleanup());
 
 finalize:

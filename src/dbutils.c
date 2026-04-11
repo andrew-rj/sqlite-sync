@@ -385,7 +385,7 @@ int dbutils_settings_table_load_callback (void *xdata, int ncols, char **values,
             char dbuf[256];
             int drc = dbutils_table_settings_get_value(data, table_name, col_name, "delimiter", dbuf, sizeof(dbuf));
             const char *delim = (drc == DBRES_OK && dbuf[0]) ? dbuf : NULL;
-            cloudsync_setup_block_column(data, table_name, col_name, delim);
+            cloudsync_setup_block_column(data, table_name, col_name, delim, false);
             DEBUG_SETTINGS("load block column: %s.%s delimiter: %s", table_name, col_name, delim ? delim : "(default)");
             continue;
         }

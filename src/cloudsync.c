@@ -2069,7 +2069,7 @@ int merge_insert (cloudsync_context *data, cloudsync_table_context *table, const
 
 // MARK: - Block column setup -
 
-int cloudsync_setup_block_column (cloudsync_context *data, const char *table_name, const char *col_name, const char *delimiter) {
+int cloudsync_setup_block_column (cloudsync_context *data, const char *table_name, const char *col_name, const char *delimiter, bool persist) {
     cloudsync_table_context *table = table_lookup(data, table_name);
     if (!table) return cloudsync_set_error(data, "cloudsync_setup_block_column: table not found", DBRES_ERROR);
 
@@ -2137,13 +2137,17 @@ int cloudsync_setup_block_column (cloudsync_context *data, const char *table_nam
         if (rc != DBRES_OK) return rc;
     }
 
-    // Persist settings
-    int rc = dbutils_table_settings_set_key_value(data, table_name, col_name, "algo", "block");
-    if (rc != DBRES_OK) return rc;
-
-    if (delimiter) {
-        rc = dbutils_table_settings_set_key_value(data, table_name, col_name, "delimiter", delimiter);
+    // Persist settings (skipped when called from the settings loader, since
+    // writing to cloudsync_table_settings while sqlite3_exec is iterating it
+    // re-feeds the rewritten row to the cursor and causes an infinite loop).
+    if (persist) {
+        int rc = dbutils_table_settings_set_key_value(data, table_name, col_name, "algo", "block");
         if (rc != DBRES_OK) return rc;
+
+        if (delimiter) {
+            rc = dbutils_table_settings_set_key_value(data, table_name, col_name, "delimiter", delimiter);
+            if (rc != DBRES_OK) return rc;
+        }
     }
 
     return DBRES_OK;

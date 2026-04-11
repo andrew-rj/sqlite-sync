@@ -18,7 +18,7 @@
 extern "C" {
 #endif
 
-#define CLOUDSYNC_VERSION                       "1.0.11"
+#define CLOUDSYNC_VERSION                       "1.0.12"
 #define CLOUDSYNC_MAX_TABLENAME_LEN             512
 
 #define CLOUDSYNC_VALUE_NOTSET                  -1
@@ -119,7 +119,7 @@ col_algo_t table_col_algo (cloudsync_table_context *table, int index);
 const char *table_col_delimiter (cloudsync_table_context *table, int index);
 int table_col_index (cloudsync_table_context *table, const char *col_name);
 int block_materialize_column (cloudsync_context *data, cloudsync_table_context *table, const void *pk, int pklen, const char *base_col_name);
-int cloudsync_setup_block_column (cloudsync_context *data, const char *table_name, const char *col_name, const char *delimiter);
+int cloudsync_setup_block_column (cloudsync_context *data, const char *table_name, const char *col_name, const char *delimiter, bool persist);
 
 // Block column accessors (avoids accessing opaque struct from outside cloudsync.c)
 dbvm_t *table_block_value_read_stmt (cloudsync_table_context *table);

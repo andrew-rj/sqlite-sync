@@ -150,7 +150,7 @@ void dbsync_set_column (sqlite3_context *context, int argc, sqlite3_value **argv
 
     // Handle block column setup: cloudsync_set_column('tbl', 'col', 'algo', 'block')
     if (key && value && strcmp(key, "algo") == 0 && strcmp(value, "block") == 0) {
-        int rc = cloudsync_setup_block_column(data, tbl, col, NULL);
+        int rc = cloudsync_setup_block_column(data, tbl, col, NULL, true);
         if (rc != DBRES_OK) {
             sqlite3_result_error(context, cloudsync_errmsg(data), -1);
         }
