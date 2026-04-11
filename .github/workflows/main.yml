@@ -273,9 +273,14 @@ jobs:
 
       - name: run postgresql tests
         run: |
+          set -o pipefail
           docker exec cloudsync-postgres mkdir -p /tmp/cloudsync/test
           docker cp test/postgresql cloudsync-postgres:/tmp/cloudsync/test/postgresql
-          docker exec cloudsync-postgres psql -U postgres -d postgres -f /tmp/cloudsync/test/postgresql/full_test.sql
+          docker exec cloudsync-postgres psql -v ON_ERROR_STOP=on -U postgres -d postgres -f /tmp/cloudsync/test/postgresql/full_test.sql 2>&1 | tee /tmp/pgtest.log
+          if grep -Eq '^(\[FAIL\]|psql:.*ERROR)' /tmp/pgtest.log; then
+            echo "::error::PostgreSQL test failures detected"
+            exit 1
+          fi
 
   postgres-build:
     if: ${{ !contains(github.event.head_commit.message, '[auto-update]') }}
