@@ -3378,7 +3378,7 @@ int cloudsync_table_sanity_check (cloudsync_context *data, const char *name, CLO
 
 int cloudsync_cleanup_internal (cloudsync_context *data, cloudsync_table_context *table) {
     if (cloudsync_context_init(data) == NULL) return DBRES_MISUSE;
-    
+
     // drop meta-table
     const char *table_name = table->name;
     char *sql = cloudsync_memory_mprintf(SQL_DROP_CLOUDSYNC_TABLE, table->meta_ref);
@@ -3389,7 +3389,19 @@ int cloudsync_cleanup_internal (cloudsync_context *data, cloudsync_table_context
         snprintf(buffer, sizeof(buffer), "Unable to drop cloudsync table %s_cloudsync in cloudsync_cleanup", table_name);
         return cloudsync_set_error(data, buffer, rc);
     }
-    
+
+    // drop blocks table if this table has block LWW columns
+    if (table->blocks_ref) {
+        sql = cloudsync_memory_mprintf(SQL_DROP_CLOUDSYNC_TABLE, table->blocks_ref);
+        rc = database_exec(data, sql);
+        cloudsync_memory_free(sql);
+        if (rc != DBRES_OK) {
+            char buffer[1024];
+            snprintf(buffer, sizeof(buffer), "Unable to drop blocks table %s_cloudsync_blocks in cloudsync_cleanup", table_name);
+            return cloudsync_set_error(data, buffer, rc);
+        }
+    }
+
     // drop original triggers
     rc = database_delete_triggers(data, table_name);
     if (rc != DBRES_OK) {

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.0.11] - 2026-04-11
+
+### Fixed
+
+- **cloudsync_cleanup**: Now also drops the `{table}_cloudsync_blocks` table when the table has block LWW columns configured via `cloudsync_set_column(..., 'algo', 'block')`.
+
+### Added
+
+- Unit test `do_test_block_lww_cleanup` verifying that both `{table}_cloudsync` and `{table}_cloudsync_blocks` are removed after `cloudsync_cleanup`.
+
 ## [1.0.10] - 2026-04-08
 
 ### Fixed

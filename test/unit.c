@@ -11281,6 +11281,55 @@ fail:
     return false;
 }
 
+bool do_test_block_lww_cleanup(bool print_result, bool cleanup_databases) {
+    // Test: cloudsync_cleanup removes both the meta-table and the blocks table
+    // when a table has block LWW columns configured.
+    sqlite3 *db = NULL;
+    time_t timestamp = time(NULL);
+    int rc;
+    bool result = false;
+
+    db = do_create_database_file(0, timestamp, test_counter++);
+    if (!db) return false;
+
+    rc = sqlite3_exec(db, "CREATE TABLE docs (id TEXT NOT NULL PRIMARY KEY, body TEXT);", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) { printf("block_cleanup: CREATE TABLE failed: %s\n", sqlite3_errmsg(db)); goto fail; }
+
+    rc = sqlite3_exec(db, "SELECT cloudsync_init('docs');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) { printf("block_cleanup: cloudsync_init failed: %s\n", sqlite3_errmsg(db)); goto fail; }
+
+    rc = sqlite3_exec(db, "SELECT cloudsync_set_column('docs', 'body', 'algo', 'block');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) { printf("block_cleanup: set_column failed: %s\n", sqlite3_errmsg(db)); goto fail; }
+
+    // Insert a row to populate the blocks table
+    rc = sqlite3_exec(db, "INSERT INTO docs (id, body) VALUES ('doc1', 'Line 1\nLine 2\nLine 3');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) { printf("block_cleanup: INSERT failed: %s\n", sqlite3_errmsg(db)); goto fail; }
+
+    // Confirm docs_cloudsync and docs_cloudsync_blocks exist before cleanup
+    int64_t meta_exists = do_select_int(db, "SELECT COUNT(*) FROM sqlite_master WHERE name='docs_cloudsync';");
+    if (meta_exists != 1) { printf("block_cleanup: docs_cloudsync missing before cleanup\n"); goto fail; }
+
+    int64_t blocks_exists = do_select_int(db, "SELECT COUNT(*) FROM sqlite_master WHERE name='docs_cloudsync_blocks';");
+    if (blocks_exists != 1) { printf("block_cleanup: docs_cloudsync_blocks missing before cleanup\n"); goto fail; }
+
+    // Run cleanup
+    rc = sqlite3_exec(db, "SELECT cloudsync_cleanup('docs');", NULL, NULL, NULL);
+    if (rc != SQLITE_OK) { printf("block_cleanup: cloudsync_cleanup failed: %s\n", sqlite3_errmsg(db)); goto fail; }
+
+    // Both companion tables must be gone after cleanup
+    int64_t meta_after = do_select_int(db, "SELECT COUNT(*) FROM sqlite_master WHERE name='docs_cloudsync';");
+    if (meta_after != 0) { printf("block_cleanup: docs_cloudsync still exists after cleanup\n"); goto fail; }
+
+    int64_t blocks_after = do_select_int(db, "SELECT COUNT(*) FROM sqlite_master WHERE name='docs_cloudsync_blocks';");
+    if (blocks_after != 0) { printf("block_cleanup: docs_cloudsync_blocks still exists after cleanup\n"); goto fail; }
+
+    result = true;
+
+fail:
+    if (db) close_db(db);
+    return result;
+}
+
 // MARK: - New edge-case tests
 
 bool do_test_unsupported_algorithms (sqlite3 *db) {
@@ -11997,6 +12046,7 @@ int main (int argc, const char * argv[]) {
     result += test_report("Test Block LWW NonOverlap:", do_test_block_lww_nonoverlap_add(2, print_result, cleanup_databases));
     result += test_report("Test Block LWW LongLine:", do_test_block_lww_long_line(2, print_result, cleanup_databases));
     result += test_report("Test Block LWW Whitespace:", do_test_block_lww_whitespace(2, print_result, cleanup_databases));
+    result += test_report("Test Block LWW Cleanup:", do_test_block_lww_cleanup(print_result, cleanup_databases));
 
     // edge-case tests
     result += test_report("Corrupted Payload Test:", do_test_corrupted_payload(2, print_result, cleanup_databases));
