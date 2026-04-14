@@ -1,0 +1,16 @@
+[package]
+name = "sqlite-sync"
+version = "1.0.12"
+edition = "2021"
+description = "Static Rust bindings for the SQLite Sync (cloudsync) extension"
+repository = "https://github.com/nicois/sqlite-sync"
+license = "MIT"
+keywords = ["sqlite", "sqlite-extension", "sync", "crdt"]
+
+[dependencies]
+
+[build-dependencies]
+cc = "1"
+
+[dev-dependencies]
+rusqlite = { version = "0.35", features = ["bundled"] }
