@@ -19,10 +19,19 @@ include = [
 ]
 
 # The C-side network layer (cloudsync_network_init, cloudsync_network_sync,
-# etc.) is always compiled in. Its HTTP transport is supplied from Rust via
-# ureq — no system libcurl or OpenSSL required, rustls handles TLS in-process.
+# etc.) is always compiled in. Its HTTP transport primitives
+# (`network_send_buffer`, `network_receive_buffer`) are provided from Rust.
+#
+# By default the `ureq-transport` feature supplies them via ureq + rustls —
+# no system libcurl or OpenSSL required. Disable default-features to drop
+# ureq and provide your own `#[no_mangle] extern "C"` implementations of
+# those two symbols; missing symbols surface as a link-time error.
+[features]
+default = ["ureq-transport"]
+ureq-transport = ["dep:ureq"]
+
 [dependencies]
-ureq = { version = "2", default-features = false, features = ["tls"] }
+ureq = { version = "2", optional = true, default-features = false, features = ["tls"] }
 
 [build-dependencies]
 cc = "1"

@@ -40,10 +40,10 @@ for the full function catalog.
 
 ## Networking
 
-The cloud sync transport is always included. The C library's HTTP primitives
-are satisfied from Rust using [`ureq`](https://crates.io/crates/ureq) with
-rustls — no system libcurl or OpenSSL dependency, TLS handled in-process on
-every platform.
+The cloud sync transport is always included. By default the C library's HTTP
+primitives are satisfied from Rust using [`ureq`](https://crates.io/crates/ureq)
+with rustls — no system libcurl or OpenSSL dependency, TLS handled in-process
+on every platform.
 
 Drive sync from SQL:
 
@@ -62,9 +62,47 @@ etc.) is intentionally left to the application — how you time this depends
 on whether your app is a desktop background process, a CLI run once per
 invocation, a server hit occasionally, or something else.
 
-If you'd rather build a custom transport, the raw payload functions
-(`cloudsync_changes`, `cloudsync_payload_encode`/`_apply`, etc.) are still
-available — just ignore `cloudsync_network_*`.
+## Features
+
+| Feature          | Default | What it does |
+|------------------|---------|--------------|
+| `ureq-transport` | on      | Provides the HTTP transport primitives via `ureq` + rustls. |
+
+### Bring your own HTTP client
+
+Disable default features to drop `ureq` and plug in your own client
+(`reqwest`, `hyper`, a mock for tests, etc.):
+
+```toml
+[dependencies]
+sqlite-sync = { version = "1.0", default-features = false }
+```
+
+You MUST then provide both transport primitives as `#[no_mangle] extern "C"`
+symbols from somewhere in your binary. The contract matches the C header in
+`src/network/network_private.h`:
+
+```rust
+#[no_mangle]
+pub unsafe extern "C" fn network_send_buffer(/* ... */) -> bool {
+    // PUT raw bytes to `endpoint`, return success.
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn network_receive_buffer(/* ... */) -> NetworkResult {
+    // GET/POST JSON from `endpoint`, return NetworkResult.
+}
+```
+
+If you forget, the linker fails with "undefined symbol" for those two
+functions — you'll know at build time, not at the first sync call. The
+default `transport.rs` in this crate is a reference implementation worth
+reading for the exact signatures and buffer-ownership conventions.
+
+If you'd rather skip the `cloudsync_network_*` SQL functions entirely, the
+raw payload functions (`cloudsync_changes`, `cloudsync_payload_encode`/
+`_apply`, etc.) are always available — build a custom transport on top of
+those and ignore the network layer.
 
 ## Compatibility
 

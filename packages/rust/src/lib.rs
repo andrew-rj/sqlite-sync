@@ -27,13 +27,35 @@
 //!
 //! The cloud sync transport is always included: the `cloudsync_network_init`,
 //! `cloudsync_network_set_apikey`, `cloudsync_network_sync` (and related) SQL
-//! functions are registered, and the C layer's HTTP primitives are satisfied
-//! from Rust via [`ureq`] + rustls. No system libcurl or OpenSSL is required.
+//! functions are registered, and the C layer calls two Rust-provided
+//! primitives — `network_send_buffer` and `network_receive_buffer` — for
+//! every HTTP request.
+//!
+//! # Features
+//!
+//! * `ureq-transport` *(default)* — supplies the two transport primitives via
+//!   [`ureq`] + rustls. No system libcurl or OpenSSL is required.
+//!
+//! Disable default features to bring your own HTTP client. You MUST then
+//! provide both primitives as `#[no_mangle] extern "C"` symbols with the
+//! signatures documented in `docs/internal/network.md`:
+//!
+//! ```ignore
+//! #[no_mangle]
+//! pub unsafe extern "C" fn network_send_buffer(/* ... */) -> bool { /* ... */ }
+//!
+//! #[no_mangle]
+//! pub unsafe extern "C" fn network_receive_buffer(/* ... */) -> NetworkResult { /* ... */ }
+//! ```
+//!
+//! Missing symbols surface as a link-time error, so forgetting this is caught
+//! at build time rather than at runtime.
 //!
 //! [SQLite Sync]: https://github.com/sqliteai/sqlite-sync
 //! [`rusqlite`]: https://crates.io/crates/rusqlite
 //! [`ureq`]: https://crates.io/crates/ureq
 
+#[cfg(feature = "ureq-transport")]
 mod transport;
 
 #[link(name = "cloudsync")]
