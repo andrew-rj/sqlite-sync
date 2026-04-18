@@ -1,0 +1,36 @@
+[package]
+name = "sqlite-sync"
+version = "1.0.12"
+edition = "2021"
+description = "Static Rust bindings for the SQLite Sync (cloudsync) extension — sync on-device SQLite databases with the cloud"
+repository = "https://github.com/sqliteai/sqlite-sync"
+homepage = "https://github.com/sqliteai/sqlite-sync"
+license = "MIT"
+keywords = ["sqlite", "sqlite-extension", "sync", "crdt", "offline-first"]
+categories = ["database", "api-bindings"]
+readme = "README.md"
+include = [
+    "src/**/*",
+    "csrc/**/*",
+    "build.rs",
+    "Cargo.toml",
+    "README.md",
+    "LICENSE.md",
+]
+
+[features]
+# Default: only the FFI shim for the cloudsync SQL functions — no HTTP.
+default = []
+# Enables the C-side network layer (cloudsync_network_init, cloudsync_network_sync,
+# etc.) and provides its HTTP transport from Rust via ureq. No system libcurl
+# or OpenSSL required — rustls handles TLS in-process.
+network = ["dep:ureq"]
+
+[dependencies]
+ureq = { version = "2", optional = true, default-features = false, features = ["tls"] }
+
+[build-dependencies]
+cc = "1"
+
+[dev-dependencies]
+rusqlite = { version = "0.35", features = ["bundled"] }

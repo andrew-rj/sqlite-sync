@@ -429,6 +429,41 @@ aar:
 	cd packages/android && ./gradlew clean assembleRelease
 	cp packages/android/build/outputs/aar/android-release.aar $(DIST_DIR)/cloudsync.aar
 
+# Rust crate: vendor C sources into packages/rust/csrc/ for crates.io packaging.
+# `cargo build` inside the monorepo works without this — build.rs falls back to
+# the in-tree sources. Vendoring is only required when packaging/publishing.
+RUST_DIR = packages/rust
+RUST_CSRC = $(RUST_DIR)/csrc
+RUST_VENDOR_FILES = \
+	$(RUST_CSRC)/src \
+	$(RUST_CSRC)/sqlite/sqlite3.h \
+	$(RUST_CSRC)/modules/fractional-indexing
+
+rust-vendor:
+	rm -rf $(RUST_CSRC)
+	mkdir -p $(RUST_CSRC)/src $(RUST_CSRC)/sqlite $(RUST_CSRC)/modules/fractional-indexing
+	cp -R src/. $(RUST_CSRC)/src/
+	cp sqlite/sqlite3.h $(RUST_CSRC)/sqlite/sqlite3.h
+	cp modules/fractional-indexing/fractional_indexing.c $(RUST_CSRC)/modules/fractional-indexing/
+	cp modules/fractional-indexing/fractional_indexing.h $(RUST_CSRC)/modules/fractional-indexing/
+	@# Strip PostgreSQL implementation — not built by the Rust crate.
+	rm -rf $(RUST_CSRC)/src/postgresql
+
+rust-test:
+	cd $(RUST_DIR) && cargo test --locked
+
+rust-test-network:
+	cd $(RUST_DIR) && cargo test --locked --features network
+
+rust-package: rust-vendor
+	cd $(RUST_DIR) && cargo package --allow-dirty
+
+rust-publish: rust-vendor
+	cd $(RUST_DIR) && cargo publish
+
+rust-clean:
+	rm -rf $(RUST_CSRC) $(RUST_DIR)/target
+
 # Tools
 version:
 	@echo $(shell sed -n 's/^#define CLOUDSYNC_VERSION[[:space:]]*"\([^"]*\)".*/\1/p' src/cloudsync.h)
@@ -459,6 +494,11 @@ help:
 	@echo "  help	  				- Display this help message"
 	@echo "  xcframework			- Build the Apple XCFramework"
 	@echo "  aar					- Build the Android AAR package"
+	@echo "  rust-test				- Run the Rust crate tests (no network)"
+	@echo "  rust-test-network		- Run the Rust crate tests with network feature"
+	@echo "  rust-vendor			- Vendor C sources into packages/rust/csrc/ for publishing"
+	@echo "  rust-package			- Vendor sources and run 'cargo package'"
+	@echo "  rust-publish			- Vendor sources and run 'cargo publish'"
 	@echo ""
 	@echo "PostgreSQL Targets:"
 	@echo "  make postgres-help	- Show PostgreSQL-specific targets"
@@ -466,4 +506,4 @@ help:
 # Include PostgreSQL extension targets
 include docker/Makefile.postgresql
 
-.PHONY: all clean test unittest e2e extension help version xcframework aar
+.PHONY: all clean test unittest e2e extension help version xcframework aar rust-vendor rust-test rust-test-network rust-package rust-publish rust-clean
