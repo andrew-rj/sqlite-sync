@@ -4,8 +4,7 @@
 // demand the helper types be re-exported alongside them.
 #![allow(private_interfaces)]
 
-//! HTTP transport implementations that the C side of cloudsync calls into
-//! when the `network` feature is enabled.
+//! HTTP transport implementations that the C side of cloudsync calls into.
 //!
 //! The C library defines `network_send_buffer` and `network_receive_buffer`
 //! as its only externally-visible transport primitives. Building with

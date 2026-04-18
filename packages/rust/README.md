@@ -38,26 +38,14 @@ From that point on every `Connection` has the `cloudsync_*` SQL functions
 available. See the [SQLite Sync API reference](https://github.com/sqliteai/sqlite-sync/blob/main/API.md)
 for the full function catalog.
 
-## Features
+## Networking
 
-| Feature   | Default | What it does |
-|-----------|---------|--------------|
-| `network` | off     | Enables the cloud sync transport (`cloudsync_network_*` SQL functions). |
+The cloud sync transport is always included. The C library's HTTP primitives
+are satisfied from Rust using [`ureq`](https://crates.io/crates/ureq) with
+rustls — no system libcurl or OpenSSL dependency, TLS handled in-process on
+every platform.
 
-### `network`
-
-Enable this when you want the extension to talk to the SQLite Cloud sync
-endpoint directly. With the feature on, the C library's HTTP transport
-primitives are satisfied from Rust using [`ureq`](https://crates.io/crates/ureq)
-with rustls — no system libcurl or OpenSSL dependency, TLS handled in-process
-on every platform.
-
-```toml
-[dependencies]
-sqlite-sync = { version = "1.0", features = ["network"] }
-```
-
-Then drive sync from SQL:
+Drive sync from SQL:
 
 ```rust
 conn.execute_batch("
@@ -74,10 +62,9 @@ etc.) is intentionally left to the application — how you time this depends
 on whether your app is a desktop background process, a CLI run once per
 invocation, a server hit occasionally, or something else.
 
-If you don't enable `network`, the `cloudsync_network_*` functions are
-absent; everything else — CRDT bookkeeping, `cloudsync_changes`,
-`cloudsync_payload_encode`/`_apply` — still works, so you can build a custom
-transport on top of the raw payload functions.
+If you'd rather build a custom transport, the raw payload functions
+(`cloudsync_changes`, `cloudsync_payload_encode`/`_apply`, etc.) are still
+available — just ignore `cloudsync_network_*`.
 
 ## Compatibility
 

@@ -31,8 +31,6 @@ fn main() {
     //      under `csrc/`, and that's all crates.io sees.
     let root = resolve_source_root(&manifest_dir);
 
-    let network_enabled = cfg!(feature = "network");
-
     let mut build = cc::Build::new();
     build
         .include(root.join("src"))
@@ -46,28 +44,19 @@ fn main() {
         .define("SQLITE_CORE", None)
         // Silence the debug printf-style helpers.
         .define("CLOUDSYNC_OMIT_PRINT_RESULT", None)
-        .warnings(false);
-
-    if network_enabled {
         // Keep network.c in the build so the C SQL glue (cloudsync_network_*)
         // registers, but skip the libcurl-specific transport — Rust supplies
         // `network_send_buffer` and `network_receive_buffer` at link time.
-        build.define("CLOUDSYNC_OMIT_CURL", None);
-    } else {
-        // Drop the whole network layer; the SQL surface loses the
-        // cloudsync_network_* functions and pk.c / utils.c / etc. stand alone.
-        build.define("CLOUDSYNC_OMIT_NETWORK", None);
-    }
+        .define("CLOUDSYNC_OMIT_CURL", None)
+        .warnings(false);
 
-    let mut sources: Vec<&&str> = CORE_SOURCES
+    let network_c = "src/network/network.c";
+    let sources: Vec<&&str> = CORE_SOURCES
         .iter()
         .chain(SQLITE_SOURCES.iter())
         .chain(FI_SOURCES.iter())
+        .chain(std::iter::once(&network_c))
         .collect();
-    let network_c = "src/network/network.c";
-    if network_enabled {
-        sources.push(&network_c);
-    }
 
     for src in sources {
         let path = root.join(src);

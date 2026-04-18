@@ -23,19 +23,17 @@
 //! println!("cloudsync version: {version}");
 //! ```
 //!
-//! # Features
+//! # Networking
 //!
-//! * `network` — enables the cloud sync transport. Registers the
-//!   `cloudsync_network_init`, `cloudsync_network_set_apikey`,
-//!   `cloudsync_network_sync` (and related) SQL functions and satisfies the C
-//!   layer's HTTP primitives from Rust via [`ureq`] + rustls. No system
-//!   libcurl or OpenSSL is required. Off by default.
+//! The cloud sync transport is always included: the `cloudsync_network_init`,
+//! `cloudsync_network_set_apikey`, `cloudsync_network_sync` (and related) SQL
+//! functions are registered, and the C layer's HTTP primitives are satisfied
+//! from Rust via [`ureq`] + rustls. No system libcurl or OpenSSL is required.
 //!
 //! [SQLite Sync]: https://github.com/sqliteai/sqlite-sync
 //! [`rusqlite`]: https://crates.io/crates/rusqlite
 //! [`ureq`]: https://crates.io/crates/ureq
 
-#[cfg(feature = "network")]
 mod transport;
 
 #[link(name = "cloudsync")]
@@ -77,11 +75,10 @@ mod tests {
         );
     }
 
-    // When the `network` feature is on, the C side registers the
-    // cloudsync_network_* SQL functions and resolves its HTTP primitives
-    // against this crate's Rust transport. We can't hit the real cloud from
-    // a unit test, but we *can* confirm the function is registered.
-    #[cfg(feature = "network")]
+    // The C side registers the cloudsync_network_* SQL functions and resolves
+    // its HTTP primitives against this crate's Rust transport. We can't hit
+    // the real cloud from a unit test, but we *can* confirm the function is
+    // registered.
     #[test]
     fn network_functions_are_registered() {
         register_once();

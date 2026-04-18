@@ -18,16 +18,11 @@ include = [
     "LICENSE.md",
 ]
 
-[features]
-# Default: only the FFI shim for the cloudsync SQL functions — no HTTP.
-default = []
-# Enables the C-side network layer (cloudsync_network_init, cloudsync_network_sync,
-# etc.) and provides its HTTP transport from Rust via ureq. No system libcurl
-# or OpenSSL required — rustls handles TLS in-process.
-network = ["dep:ureq"]
-
+# The C-side network layer (cloudsync_network_init, cloudsync_network_sync,
+# etc.) is always compiled in. Its HTTP transport is supplied from Rust via
+# ureq — no system libcurl or OpenSSL required, rustls handles TLS in-process.
 [dependencies]
-ureq = { version = "2", optional = true, default-features = false, features = ["tls"] }
+ureq = { version = "2", default-features = false, features = ["tls"] }
 
 [build-dependencies]
 cc = "1"
