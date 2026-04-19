@@ -450,10 +450,10 @@ rust-vendor:
 	rm -rf $(RUST_CSRC)/src/postgresql
 
 rust-test:
-	cd $(RUST_DIR) && cargo test --locked
+	cd $(RUST_DIR) && cargo test
 
 rust-test-network:
-	cd $(RUST_DIR) && cargo test --locked --features network
+	cd $(RUST_DIR) && cargo test --features network
 
 rust-package: rust-vendor
 	cd $(RUST_DIR) && cargo package --allow-dirty
